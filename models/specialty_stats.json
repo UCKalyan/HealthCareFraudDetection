@@ -1,0 +1,1068 @@
+{
+    "cost_stats": [
+        {
+            "specialty": 0,
+            "mean": 53393.68430153069,
+            "std": 299825.35403793957
+        },
+        {
+            "specialty": "Addiction Medicine",
+            "mean": 241435.5291891892,
+            "std": 375927.51430687
+        },
+        {
+            "specialty": "Adult Congenital Heart Disease",
+            "mean": 465886.5702857143,
+            "std": 1135322.5982581081
+        },
+        {
+            "specialty": "Advanced Heart Failure and Transplant Cardiology",
+            "mean": 1783262.587183406,
+            "std": 2267763.60444389
+        },
+        {
+            "specialty": "All Other Suppliers",
+            "mean": 2637575.495,
+            "std": 9469837.70823896
+        },
+        {
+            "specialty": "Allergy/ Immunology",
+            "mean": 842476.9838461538,
+            "std": 1428612.0066633336
+        },
+        {
+            "specialty": "Ambulance Service Provider",
+            "mean": 1961001.315376498,
+            "std": 7911378.653436498
+        },
+        {
+            "specialty": "Ambulatory Surgical Center",
+            "mean": 5899028.782186115,
+            "std": 7584179.899610368
+        },
+        {
+            "specialty": "Anesthesiology",
+            "mean": 397594.6801831044,
+            "std": 499494.62872647535
+        },
+        {
+            "specialty": "Anesthesiology Assistant",
+            "mean": 153463.09100861632,
+            "std": 103605.06977887826
+        },
+        {
+            "specialty": "Audiologist",
+            "mean": 31408.8793852367,
+            "std": 39421.17497799698
+        },
+        {
+            "specialty": "Cardiac Surgery",
+            "mean": 699776.4043786982,
+            "std": 706379.8510063398
+        },
+        {
+            "specialty": "Cardiology",
+            "mean": 1417498.4019878295,
+            "std": 1678938.182833816
+        },
+        {
+            "specialty": "Centralized Flu",
+            "mean": 97099.08539104159,
+            "std": 1150992.9812665805
+        },
+        {
+            "specialty": "Certified Clinical Nurse Specialist",
+            "mean": 281451.27705752215,
+            "std": 516160.5927548243
+        },
+        {
+            "specialty": "Certified Nurse Midwife",
+            "mean": 22600.938888888886,
+            "std": 64763.130975444175
+        },
+        {
+            "specialty": "Certified Registered Nurse Anesthetist (CRNA)",
+            "mean": 194870.19162897835,
+            "std": 201672.7002563388
+        },
+        {
+            "specialty": "Chiropractic",
+            "mean": 30506.109054594537,
+            "std": 31448.822173754477
+        },
+        {
+            "specialty": "Clinic or Group Practice",
+            "mean": 99053.06945945947,
+            "std": 260595.08234086234
+        },
+        {
+            "specialty": "Clinical Cardiac Electrophysiology",
+            "mean": 1571318.6891432395,
+            "std": 1514424.6110590834
+        },
+        {
+            "specialty": "Clinical Laboratory",
+            "mean": 8642557.257333688,
+            "std": 55690569.09975265
+        },
+        {
+            "specialty": "Colorectal Surgery (Proctology)",
+            "mean": 367800.0900395648,
+            "std": 339239.5054651364
+        },
+        {
+            "specialty": "Critical Care (Intensivists)",
+            "mean": 445781.5040771637,
+            "std": 755547.8264223977
+        },
+        {
+            "specialty": "Dental Anesthesiology",
+            "mean": 143601.0,
+            "std": NaN
+        },
+        {
+            "specialty": "Dentist",
+            "mean": 132494.86141666665,
+            "std": 248721.6137718057
+        },
+        {
+            "specialty": "Dermatology",
+            "mean": 1093930.0168173206,
+            "std": 1254372.7503470848
+        },
+        {
+            "specialty": "Diagnostic Radiology",
+            "mean": 821302.1712969759,
+            "std": 1013596.6081820794
+        },
+        {
+            "specialty": "Emergency Medicine",
+            "mean": 341366.6364778901,
+            "std": 513696.93460133416
+        },
+        {
+            "specialty": "Endocrinology",
+            "mean": 1784461.1081825271,
+            "std": 1625056.7374279213
+        },
+        {
+            "specialty": "Family Practice",
+            "mean": 591853.1999446838,
+            "std": 781727.4110405721
+        },
+        {
+            "specialty": "Gastroenterology",
+            "mean": 913028.4330405641,
+            "std": 885380.0142203398
+        },
+        {
+            "specialty": "General Practice",
+            "mean": 652041.3832383537,
+            "std": 1398350.2464882154
+        },
+        {
+            "specialty": "General Surgery",
+            "mean": 300093.820083447,
+            "std": 495480.02020749764
+        },
+        {
+            "specialty": "Geriatric Medicine",
+            "mean": 706544.6292411925,
+            "std": 3228168.166820992
+        },
+        {
+            "specialty": "Geriatric Psychiatry",
+            "mean": 325119.51358490565,
+            "std": 380355.152114057
+        },
+        {
+            "specialty": "Gynecological Oncology",
+            "mean": 630234.7789953632,
+            "std": 988679.3848363471
+        },
+        {
+            "specialty": "Hand Surgery",
+            "mean": 666731.9743496358,
+            "std": 618394.058045173
+        },
+        {
+            "specialty": "Hematology",
+            "mean": 2180428.0600547446,
+            "std": 3503402.056137909
+        },
+        {
+            "specialty": "Hematology-Oncology",
+            "mean": 4731670.253140169,
+            "std": 6001055.67892732
+        },
+        {
+            "specialty": "Hematopoietic Cell Transplantation and Cellular Therapy",
+            "mean": 1946863.3693203882,
+            "std": 3080018.6230479633
+        },
+        {
+            "specialty": "Home Infusion Therapy Services",
+            "mean": 540066.0170967742,
+            "std": 1169245.1155783725
+        },
+        {
+            "specialty": "Hospice and Palliative Care",
+            "mean": 154484.25821878025,
+            "std": 253179.31317646784
+        },
+        {
+            "specialty": "Hospitalist",
+            "mean": 245391.92118989475,
+            "std": 635814.6473130909
+        },
+        {
+            "specialty": "Independent Diagnostic Testing Facility (IDTF)",
+            "mean": 2531893.623961952,
+            "std": 16284747.6136825
+        },
+        {
+            "specialty": "Infectious Disease",
+            "mean": 876207.5513635174,
+            "std": 1264604.4958464282
+        },
+        {
+            "specialty": "Intensive Cardiac Rehabilitation",
+            "mean": 399289.08428571426,
+            "std": 286276.6242748319
+        },
+        {
+            "specialty": "Internal Medicine",
+            "mean": 682634.084216863,
+            "std": 1161177.602021301
+        },
+        {
+            "specialty": "Interventional Cardiology",
+            "mean": 1480861.4002976639,
+            "std": 1593197.1084286305
+        },
+        {
+            "specialty": "Interventional Pain Management",
+            "mean": 1334028.506111111,
+            "std": 1548934.6209948417
+        },
+        {
+            "specialty": "Interventional Radiology",
+            "mean": 1039291.9583787466,
+            "std": 1785237.5186913817
+        },
+        {
+            "specialty": "Licensed Clinical Social Worker",
+            "mean": 48463.330787295476,
+            "std": 59966.84879077519
+        },
+        {
+            "specialty": "Mammography Center",
+            "mean": 640093.97625,
+            "std": 1336917.3895860699
+        },
+        {
+            "specialty": "Mass Immunizer Roster Biller",
+            "mean": 60323.6553342246,
+            "std": 142370.76678333708
+        },
+        {
+            "specialty": "Maxillofacial Surgery",
+            "mean": 84007.08427884616,
+            "std": 172711.97688045521
+        },
+        {
+            "specialty": "Medical Genetics and Genomics",
+            "mean": 757412.1025,
+            "std": 1422595.8926718517
+        },
+        {
+            "specialty": "Medical Oncology",
+            "mean": 3455428.037880143,
+            "std": 5394485.646321358
+        },
+        {
+            "specialty": "Medical Toxicology",
+            "mean": 129853.54541666668,
+            "std": 125529.43031466703
+        },
+        {
+            "specialty": "Medicare Diabetes Preventive Program",
+            "mean": 6688.455333333333,
+            "std": 4096.878543324812
+        },
+        {
+            "specialty": "Micrographic Dermatologic Surgery",
+            "mean": 2104247.909528302,
+            "std": 1797611.8103034939
+        },
+        {
+            "specialty": "Nephrology",
+            "mean": 716121.0585863967,
+            "std": 776646.7600790643
+        },
+        {
+            "specialty": "Neurology",
+            "mean": 1003550.1795132972,
+            "std": 1760064.253727914
+        },
+        {
+            "specialty": "Neuropsychiatry",
+            "mean": 581164.4775961539,
+            "std": 932793.4729981107
+        },
+        {
+            "specialty": "Neurosurgery",
+            "mean": 760564.4213462805,
+            "std": 1013330.6047661254
+        },
+        {
+            "specialty": "Nuclear Medicine",
+            "mean": 1316863.3372580647,
+            "std": 2744140.90703386
+        },
+        {
+            "specialty": "Nurse Practitioner",
+            "mean": 316039.80694556877,
+            "std": 891516.3448930075
+        },
+        {
+            "specialty": "Obstetrics & Gynecology",
+            "mean": 97217.57280011405,
+            "std": 530701.7933288872
+        },
+        {
+            "specialty": "Occupational Therapist in Private Practice",
+            "mean": 115394.28545690635,
+            "std": 161344.2563031755
+        },
+        {
+            "specialty": "Ophthalmology",
+            "mean": 1623354.3204984094,
+            "std": 2595765.9748022417
+        },
+        {
+            "specialty": "Opioid Treatment Program",
+            "mean": 318675.6773565574,
+            "std": 612631.0005962006
+        },
+        {
+            "specialty": "Optometry",
+            "mean": 126357.1744517716,
+            "std": 235735.63743710023
+        },
+        {
+            "specialty": "Oral Surgery (Dentist only)",
+            "mean": 132992.01505942276,
+            "std": 476995.0765883701
+        },
+        {
+            "specialty": "Orthopedic Surgery",
+            "mean": 713376.9763861689,
+            "std": 894951.9253583299
+        },
+        {
+            "specialty": "Osteopathic Manipulative Medicine",
+            "mean": 477991.85513382,
+            "std": 1250413.3303040506
+        },
+        {
+            "specialty": "Otolaryngology",
+            "mean": 447690.59553551086,
+            "std": 780843.9481814078
+        },
+        {
+            "specialty": "Pain Management",
+            "mean": 1049938.288872315,
+            "std": 1244692.75151134
+        },
+        {
+            "specialty": "Pathology",
+            "mean": 451539.7897973348,
+            "std": 1248531.9815549874
+        },
+        {
+            "specialty": "Pediatric Medicine",
+            "mean": 332495.8566604477,
+            "std": 759233.4286332269
+        },
+        {
+            "specialty": "Peripheral Vascular Disease",
+            "mean": 1719848.165277778,
+            "std": 3777743.9926185682
+        },
+        {
+            "specialty": "Pharmacy",
+            "mean": 376924.94678571424,
+            "std": 2961286.3945761137
+        },
+        {
+            "specialty": "Physical Medicine and Rehabilitation",
+            "mean": 535071.3889292123,
+            "std": 798279.8141085238
+        },
+        {
+            "specialty": "Physical Therapist in Private Practice",
+            "mean": 153939.0159944552,
+            "std": 176894.1934041711
+        },
+        {
+            "specialty": "Physician Assistant",
+            "mean": 262645.46037615486,
+            "std": 507378.4636239301
+        },
+        {
+            "specialty": "Plastic and Reconstructive Surgery",
+            "mean": 368004.3421212121,
+            "std": 1348120.4210739129
+        },
+        {
+            "specialty": "Podiatry",
+            "mean": 350614.1959961232,
+            "std": 846370.5824282091
+        },
+        {
+            "specialty": "Portable X-Ray Supplier",
+            "mean": 2093710.078060606,
+            "std": 10792752.408452813
+        },
+        {
+            "specialty": "Preventive Medicine",
+            "mean": 350769.1119620253,
+            "std": 748958.0157898972
+        },
+        {
+            "specialty": "Psychiatry",
+            "mean": 299708.17797464156,
+            "std": 456175.503090196
+        },
+        {
+            "specialty": "Psychologist, Clinical",
+            "mean": 89519.49370017216,
+            "std": 116444.36095692636
+        },
+        {
+            "specialty": "Public Health or Welfare Agency",
+            "mean": 32732.464962406015,
+            "std": 51296.34806808578
+        },
+        {
+            "specialty": "Pulmonary Disease",
+            "mean": 1186363.7841863057,
+            "std": 1549473.8690926698
+        },
+        {
+            "specialty": "Radiation Oncology",
+            "mean": 1566882.551749577,
+            "std": 2589564.643852712
+        },
+        {
+            "specialty": "Radiation Therapy Center",
+            "mean": 4335183.976428571,
+            "std": 2699786.880904164
+        },
+        {
+            "specialty": "Registered Dietitian or Nutrition Professional",
+            "mean": 17419.807247915087,
+            "std": 25667.620707190435
+        },
+        {
+            "specialty": "Rheumatology",
+            "mean": 3421747.869793609,
+            "std": 3877013.4425516846
+        },
+        {
+            "specialty": "Sleep Medicine",
+            "mean": 424211.5226012793,
+            "std": 505674.23186332756
+        },
+        {
+            "specialty": "Slide Preparation Facility",
+            "mean": 192812.86,
+            "std": 160275.8877026685
+        },
+        {
+            "specialty": "Speech Language Pathologist",
+            "mean": 78505.25586280056,
+            "std": 88830.49417369165
+        },
+        {
+            "specialty": "Sports Medicine",
+            "mean": 420115.60036503366,
+            "std": 620243.2196904736
+        },
+        {
+            "specialty": "Surgical Oncology",
+            "mean": 340855.6293122421,
+            "std": 347549.00449859066
+        },
+        {
+            "specialty": "Thoracic Surgery",
+            "mean": 494047.51051080547,
+            "std": 640772.1438572165
+        },
+        {
+            "specialty": "Undefined Physician type",
+            "mean": 726132.7051079137,
+            "std": 1109316.5255206642
+        },
+        {
+            "specialty": "Undersea and Hyperbaric Medicine",
+            "mean": 541712.2155714285,
+            "std": 1243095.2074158574
+        },
+        {
+            "specialty": "Unknown Supplier/Provider Specialty",
+            "mean": 68383.48923076924,
+            "std": 88463.98918605303
+        },
+        {
+            "specialty": "Urology",
+            "mean": 1049704.106670877,
+            "std": 1210454.72560167
+        },
+        {
+            "specialty": "Vascular Surgery",
+            "mean": 1083503.830910296,
+            "std": 1712103.9172596394
+        }
+    ],
+    "spb_stats": [
+        {
+            "specialty": 0,
+            "mean": 3.270083977330497,
+            "std": 5.043202555046352
+        },
+        {
+            "specialty": "Addiction Medicine",
+            "mean": 7.847244096998054,
+            "std": 6.109777730583105
+        },
+        {
+            "specialty": "Adult Congenital Heart Disease",
+            "mean": 3.561319466509738,
+            "std": 1.5127497237858356
+        },
+        {
+            "specialty": "Advanced Heart Failure and Transplant Cardiology",
+            "mean": 4.612511130753611,
+            "std": 1.9740962532397996
+        },
+        {
+            "specialty": "All Other Suppliers",
+            "mean": 9.12386373004636,
+            "std": 17.073725756054298
+        },
+        {
+            "specialty": "Allergy/ Immunology",
+            "mean": 21.67059663353482,
+            "std": 27.20106896404111
+        },
+        {
+            "specialty": "Ambulance Service Provider",
+            "mean": 34.104659245807014,
+            "std": 81.39490275273316
+        },
+        {
+            "specialty": "Ambulatory Surgical Center",
+            "mean": 6.145230055534933,
+            "std": 20.535613370142887
+        },
+        {
+            "specialty": "Anesthesiology",
+            "mean": 1.9825143156784097,
+            "std": 11.242254916093861
+        },
+        {
+            "specialty": "Anesthesiology Assistant",
+            "mean": 1.0328128437792226,
+            "std": 0.09259530121240098
+        },
+        {
+            "specialty": "Audiologist",
+            "mean": 2.0488274927293344,
+            "std": 1.0704614944787247
+        },
+        {
+            "specialty": "Cardiac Surgery",
+            "mean": 2.750006249964869,
+            "std": 1.9569413423446635
+        },
+        {
+            "specialty": "Cardiology",
+            "mean": 4.755786537629352,
+            "std": 4.660119003051686
+        },
+        {
+            "specialty": "Centralized Flu",
+            "mean": 4.299151942365718,
+            "std": 1.2401491139808445
+        },
+        {
+            "specialty": "Certified Clinical Nurse Specialist",
+            "mean": 7.674837998209373,
+            "std": 8.061364496543602
+        },
+        {
+            "specialty": "Certified Nurse Midwife",
+            "mean": 2.7352450200539624,
+            "std": 2.2028656790436987
+        },
+        {
+            "specialty": "Certified Registered Nurse Anesthetist (CRNA)",
+            "mean": 1.0944349406219478,
+            "std": 0.7581972522839089
+        },
+        {
+            "specialty": "Chiropractic",
+            "mean": 9.686351266075565,
+            "std": 5.31338256084815
+        },
+        {
+            "specialty": "Clinic or Group Practice",
+            "mean": 3.3669033494559715,
+            "std": 4.539710492176863
+        },
+        {
+            "specialty": "Clinical Cardiac Electrophysiology",
+            "mean": 3.955576943626808,
+            "std": 1.8837696893810918
+        },
+        {
+            "specialty": "Clinical Laboratory",
+            "mean": 13.860696103334151,
+            "std": 38.2594156476688
+        },
+        {
+            "specialty": "Colorectal Surgery (Proctology)",
+            "mean": 2.437093729454504,
+            "std": 1.2859434319553649
+        },
+        {
+            "specialty": "Critical Care (Intensivists)",
+            "mean": 3.017252379208315,
+            "std": 1.7822926173874392
+        },
+        {
+            "specialty": "Dental Anesthesiology",
+            "mean": 1.087837837837838,
+            "std": NaN
+        },
+        {
+            "specialty": "Dentist",
+            "mean": 3.737166307298964,
+            "std": 8.905912795326733
+        },
+        {
+            "specialty": "Dermatology",
+            "mean": 5.008421298726536,
+            "std": 5.168544910385142
+        },
+        {
+            "specialty": "Diagnostic Radiology",
+            "mean": 3.9161316907468966,
+            "std": 7.547983250622588
+        },
+        {
+            "specialty": "Emergency Medicine",
+            "mean": 1.812323208995466,
+            "std": 9.459415089959341
+        },
+        {
+            "specialty": "Endocrinology",
+            "mean": 7.2946637058179595,
+            "std": 6.506850042723256
+        },
+        {
+            "specialty": "Family Practice",
+            "mean": 9.465917478873807,
+            "std": 12.575665365724607
+        },
+        {
+            "specialty": "Gastroenterology",
+            "mean": 3.9455389570753345,
+            "std": 5.9069948714043425
+        },
+        {
+            "specialty": "General Practice",
+            "mean": 12.265055970773002,
+            "std": 22.51645824675248
+        },
+        {
+            "specialty": "General Surgery",
+            "mean": 2.999992344750251,
+            "std": 33.49288066030183
+        },
+        {
+            "specialty": "Geriatric Medicine",
+            "mean": 9.937700605141305,
+            "std": 8.460004299349546
+        },
+        {
+            "specialty": "Geriatric Psychiatry",
+            "mean": 8.8982399082099,
+            "std": 5.6253724337642925
+        },
+        {
+            "specialty": "Gynecological Oncology",
+            "mean": 13.19368549776216,
+            "std": 39.158012793133686
+        },
+        {
+            "specialty": "Hand Surgery",
+            "mean": 4.190499471126408,
+            "std": 2.118728241786035
+        },
+        {
+            "specialty": "Hematology",
+            "mean": 18.526168515949266,
+            "std": 53.24965610720882
+        },
+        {
+            "specialty": "Hematology-Oncology",
+            "mean": 97.85921384651219,
+            "std": 1970.7164397877352
+        },
+        {
+            "specialty": "Hematopoietic Cell Transplantation and Cellular Therapy",
+            "mean": 13.214005839012014,
+            "std": 29.646930200345015
+        },
+        {
+            "specialty": "Home Infusion Therapy Services",
+            "mean": 1910.8528440909338,
+            "std": 7208.025803966202
+        },
+        {
+            "specialty": "Hospice and Palliative Care",
+            "mean": 4.347354686772699,
+            "std": 9.630085089984211
+        },
+        {
+            "specialty": "Hospitalist",
+            "mean": 3.047623657497248,
+            "std": 5.643717151825638
+        },
+        {
+            "specialty": "Independent Diagnostic Testing Facility (IDTF)",
+            "mean": 9.214762340641977,
+            "std": 15.958487608070598
+        },
+        {
+            "specialty": "Infectious Disease",
+            "mean": 17.25299431830454,
+            "std": 112.44190065875013
+        },
+        {
+            "specialty": "Intensive Cardiac Rehabilitation",
+            "mean": 27.132246131028875,
+            "std": 18.057871429372096
+        },
+        {
+            "specialty": "Internal Medicine",
+            "mean": 8.659111011979023,
+            "std": 51.29493737451621
+        },
+        {
+            "specialty": "Interventional Cardiology",
+            "mean": 4.2969266016853584,
+            "std": 2.267572976727966
+        },
+        {
+            "specialty": "Interventional Pain Management",
+            "mean": 11.255319866588579,
+            "std": 11.793849611201347
+        },
+        {
+            "specialty": "Interventional Radiology",
+            "mean": 4.255287727562939,
+            "std": 7.240819966307397
+        },
+        {
+            "specialty": "Licensed Clinical Social Worker",
+            "mean": 11.39840766004301,
+            "std": 9.562227577955086
+        },
+        {
+            "specialty": "Mammography Center",
+            "mean": 1.8599989872939433,
+            "std": 0.353937493529802
+        },
+        {
+            "specialty": "Mass Immunizer Roster Biller",
+            "mean": 5.8782276483106735,
+            "std": 207.83406654694141
+        },
+        {
+            "specialty": "Maxillofacial Surgery",
+            "mean": 2.4651381085821837,
+            "std": 1.1731525211307021
+        },
+        {
+            "specialty": "Medical Genetics and Genomics",
+            "mean": 3.5044701975389674,
+            "std": 7.145657836213457
+        },
+        {
+            "specialty": "Medical Oncology",
+            "mean": 46.92196805213485,
+            "std": 107.73531688821286
+        },
+        {
+            "specialty": "Medical Toxicology",
+            "mean": 1.3915337931275957,
+            "std": 0.6672647126489673
+        },
+        {
+            "specialty": "Medicare Diabetes Preventive Program",
+            "mean": 3.156099995683329,
+            "std": 0.5990597860486471
+        },
+        {
+            "specialty": "Micrographic Dermatologic Surgery",
+            "mean": 4.237274234418878,
+            "std": 2.9478088305560917
+        },
+        {
+            "specialty": "Nephrology",
+            "mean": 6.1892851080112035,
+            "std": 15.28321739503911
+        },
+        {
+            "specialty": "Neurology",
+            "mean": 8.867169034341911,
+            "std": 23.137781442835976
+        },
+        {
+            "specialty": "Neuropsychiatry",
+            "mean": 7.0617965903765825,
+            "std": 9.294111675161595
+        },
+        {
+            "specialty": "Neurosurgery",
+            "mean": 2.7326316601874616,
+            "std": 2.3704816495018175
+        },
+        {
+            "specialty": "Nuclear Medicine",
+            "mean": 6.62720197673344,
+            "std": 35.38573338855269
+        },
+        {
+            "specialty": "Nurse Practitioner",
+            "mean": 7.202616439990525,
+            "std": 29.758670847357795
+        },
+        {
+            "specialty": "Obstetrics & Gynecology",
+            "mean": 3.1865131012675136,
+            "std": 5.287439408609913
+        },
+        {
+            "specialty": "Occupational Therapist in Private Practice",
+            "mean": 39.115972301314116,
+            "std": 33.28471007797314
+        },
+        {
+            "specialty": "Ophthalmology",
+            "mean": 6.709731746722063,
+            "std": 15.287967001544938
+        },
+        {
+            "specialty": "Opioid Treatment Program",
+            "mean": 43.26035525960489,
+            "std": 34.75394109137639
+        },
+        {
+            "specialty": "Optometry",
+            "mean": 3.005111660245334,
+            "std": 2.7975510043331644
+        },
+        {
+            "specialty": "Oral Surgery (Dentist only)",
+            "mean": 2.958239397303867,
+            "std": 3.7683046400492213
+        },
+        {
+            "specialty": "Orthopedic Surgery",
+            "mean": 5.4805391725180055,
+            "std": 10.15509427447553
+        },
+        {
+            "specialty": "Osteopathic Manipulative Medicine",
+            "mean": 9.519620036552924,
+            "std": 11.909620684949367
+        },
+        {
+            "specialty": "Otolaryngology",
+            "mean": 3.609747663257744,
+            "std": 4.8909960128949415
+        },
+        {
+            "specialty": "Pain Management",
+            "mean": 9.587286393973644,
+            "std": 22.047009020688495
+        },
+        {
+            "specialty": "Pathology",
+            "mean": 3.449006431134395,
+            "std": 2.1313492673406578
+        },
+        {
+            "specialty": "Pediatric Medicine",
+            "mean": 8.828213318541673,
+            "std": 32.4626990754634
+        },
+        {
+            "specialty": "Peripheral Vascular Disease",
+            "mean": 4.250366365424593,
+            "std": 2.7183434538705176
+        },
+        {
+            "specialty": "Pharmacy",
+            "mean": 1548.2958848690291,
+            "std": 17521.758647054838
+        },
+        {
+            "specialty": "Physical Medicine and Rehabilitation",
+            "mean": 10.99335356193682,
+            "std": 32.85323056195541
+        },
+        {
+            "specialty": "Physical Therapist in Private Practice",
+            "mean": 32.62019868351483,
+            "std": 23.923505586915272
+        },
+        {
+            "specialty": "Physician Assistant",
+            "mean": 4.046834159685476,
+            "std": 9.634483870533087
+        },
+        {
+            "specialty": "Plastic and Reconstructive Surgery",
+            "mean": 3.597748915652634,
+            "std": 3.868495795210319
+        },
+        {
+            "specialty": "Podiatry",
+            "mean": 4.716839943562737,
+            "std": 5.629638320332422
+        },
+        {
+            "specialty": "Portable X-Ray Supplier",
+            "mean": 5.06861180730714,
+            "std": 1.0500550808842928
+        },
+        {
+            "specialty": "Preventive Medicine",
+            "mean": 6.253514207077984,
+            "std": 8.902835152010322
+        },
+        {
+            "specialty": "Psychiatry",
+            "mean": 9.814585968934942,
+            "std": 7.181837482559695
+        },
+        {
+            "specialty": "Psychologist, Clinical",
+            "mean": 12.16217452566802,
+            "std": 9.281620518584699
+        },
+        {
+            "specialty": "Public Health or Welfare Agency",
+            "mean": 2.495550766504988,
+            "std": 0.5447722008954964
+        },
+        {
+            "specialty": "Pulmonary Disease",
+            "mean": 4.531812037136487,
+            "std": 4.40841057129304
+        },
+        {
+            "specialty": "Radiation Oncology",
+            "mean": 10.853693068285711,
+            "std": 14.27678017393114
+        },
+        {
+            "specialty": "Radiation Therapy Center",
+            "mean": 36.114106890008614,
+            "std": 14.434039875481435
+        },
+        {
+            "specialty": "Registered Dietitian or Nutrition Professional",
+            "mean": 5.1878185056294335,
+            "std": 3.935975885000825
+        },
+        {
+            "specialty": "Rheumatology",
+            "mean": 49.30189272717647,
+            "std": 74.33834186933085
+        },
+        {
+            "specialty": "Sleep Medicine",
+            "mean": 2.6486564709027967,
+            "std": 2.421725066834132
+        },
+        {
+            "specialty": "Slide Preparation Facility",
+            "mean": 2.28586035755497,
+            "std": 0.39209239635785326
+        },
+        {
+            "specialty": "Speech Language Pathologist",
+            "mean": 19.589662837012465,
+            "std": 19.833196103626392
+        },
+        {
+            "specialty": "Sports Medicine",
+            "mean": 7.968040894913658,
+            "std": 8.99165462175157
+        },
+        {
+            "specialty": "Surgical Oncology",
+            "mean": 2.875515288129022,
+            "std": 4.302082160943014
+        },
+        {
+            "specialty": "Thoracic Surgery",
+            "mean": 2.694780870725416,
+            "std": 2.324293068682481
+        },
+        {
+            "specialty": "Undefined Physician type",
+            "mean": 5.4447177479677205,
+            "std": 7.509173441918718
+        },
+        {
+            "specialty": "Undersea and Hyperbaric Medicine",
+            "mean": 8.266040313260948,
+            "std": 17.226032492361124
+        },
+        {
+            "specialty": "Unknown Supplier/Provider Specialty",
+            "mean": 9.834426042626147,
+            "std": 9.040473412302072
+        },
+        {
+            "specialty": "Urology",
+            "mean": 7.636483265628769,
+            "std": 17.721685915532845
+        },
+        {
+            "specialty": "Vascular Surgery",
+            "mean": 3.8048906072791175,
+            "std": 18.934952388722508
+        }
+    ],
+    "median_pagerank": 7.206305472317424e-07,
+    "final_feature_columns": [
+        "spb_z_tanh",
+        "cost_per_service",
+        "services_per_bene",
+        "provider_archetype_0",
+        "provider_archetype_1",
+        "provider_archetype_2",
+        "provider_archetype_3",
+        "provider_archetype_4",
+        "pagerank_centrality"
+    ]
+}
