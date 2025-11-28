@@ -1,0 +1,1344 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fraud Investigator's Workbench</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Inter:wght@400;500;600&display=swap"
+        rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Outfit', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            800: '#1e40af',
+                            900: '#0f172a', // Deep Navy
+                        }
+                    },
+                    boxShadow: {
+                        'soft': '0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -1px rgba(0, 0, 0, 0.02)',
+                        'glow': '0 0 15px rgba(59, 130, 246, 0.15)'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #f8fafc;
+        }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .sidebar-link {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .sidebar-link::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 0;
+            background: rgba(255, 255, 255, 0.1);
+            transition: width 0.3s ease;
+        }
+
+        .sidebar-link:hover::after {
+            width: 100%;
+        }
+
+        .sidebar-link.active {
+            background: linear-gradient(90deg, #2563eb 0%, #1d4ed8 100%);
+            color: white;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+        }
+
+        .card-hover {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .card-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+        }
+
+        .animate-fade-in {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+
+<body class="flex h-screen antialiased text-slate-800 overflow-hidden">
+    <!-- Sidebar -->
+    <aside class="w-72 bg-brand-900 text-white flex flex-col shadow-2xl z-20 relative">
+        <div class="p-8">
+            <div class="flex items-center space-x-3 mb-8">
+                <div
+                    class="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/30">
+                    <span class="text-2xl">🛡️</span>
+                </div>
+                <div>
+                    <h1 class="font-display font-bold text-xl tracking-tight">FraudGuard</h1>
+                    <p class="text-xs text-slate-400 font-medium">AI-Powered Detection</p>
+                </div>
+            </div>
+
+            <nav class="space-y-2">
+                <a href="#" id="dashboardLink"
+                    class="sidebar-link active flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium text-slate-300 hover:text-white">
+                    <span class="text-lg">📊</span><span>Dashboard</span>
+                </a>
+                <a href="#" id="directoryLink"
+                    class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium text-slate-300 hover:text-white">
+                    <span class="text-lg">📂</span><span>Provider Directory</span>
+                </a>
+                <a href="#" id="manualAnalysisLink"
+                    class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium text-slate-300 hover:text-white">
+                    <span class="text-lg">🧪</span><span>Manual Analysis</span>
+                </a>
+                <a href="#" id="architectureLink"
+                    class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium text-slate-300 hover:text-white">
+                    <span class="text-lg">🏗️</span><span>System Architecture</span>
+                </a>
+            </nav>
+        </div>
+
+        <div class="mt-auto p-8 bg-slate-800/50 backdrop-blur-sm">
+            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Quick Lookup</h3>
+            <form id="npiSearchForm" class="relative group">
+                <input type="text" id="npiInput"
+                    class="w-full bg-slate-900/50 border border-slate-700 text-white text-sm rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent block w-full pl-10 p-2.5 transition-all group-hover:bg-slate-900"
+                    placeholder="Enter NPI...">
+                <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-500">
+                    🔍
+                </div>
+            </form>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col overflow-hidden bg-[#f8fafc] relative">
+        <!-- Header -->
+        <header class="bg-white border-b border-slate-200 h-16 flex items-center justify-between px-8 shadow-sm z-10">
+            <h2 id="pageTitle" class="font-display font-semibold text-xl text-slate-800">Overview</h2>
+            <div class="flex items-center space-x-4">
+                <div
+                    class="flex items-center space-x-2 text-sm text-slate-600 bg-slate-50 px-3 py-1.5 rounded-full border border-slate-200">
+                    <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                    <span>Kalyan Uppuluri</span>
+                </div>
+                <div
+                    class="h-8 w-8 bg-brand-100 rounded-full flex items-center justify-center text-brand-700 font-bold text-xs">
+                    AI
+                </div>
+            </div>
+        </header>
+
+        <!-- Content Scroll Area -->
+        <div class="flex-1 overflow-y-auto p-8 scroll-smooth">
+
+            <!-- Loading Overlay with Agent Progress -->
+            <div id="loadingOverlay"
+                class="hidden absolute inset-0 bg-white/80 backdrop-blur-md flex flex-col items-center justify-center z-50 animate-fade-in">
+                <div class="relative">
+                    <div class="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+                    <div class="absolute inset-0 flex items-center justify-center">
+                        <span class="text-xl">🧠</span>
+                    </div>
+                </div>
+                <h3 class="mt-4 text-lg font-display font-semibold text-slate-800">AI Agents at Work</h3>
+
+                <!-- Agent Progress Tracker -->
+                <div class="mt-6 space-y-3 w-80">
+                    <div id="investigatorProgress"
+                        class="flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm border border-slate-200">
+                        <div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center">
+                            <span class="text-lg">🕵️</span>
+                        </div>
+                        <div class="flex-1">
+                            <div class="text-sm font-semibold text-slate-700">Investigator</div>
+                            <div class="text-xs text-slate-500">Initial data review</div>
+                        </div>
+                        <div id="investigatorStatus" class="text-slate-400">⏳</div>
+                    </div>
+
+                    <div id="analystProgress"
+                        class="flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm border border-slate-200 opacity-50">
+                        <div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center">
+                            <span class="text-lg">📊</span>
+                        </div>
+                        <div class="flex-1">
+                            <div class="text-sm font-semibold text-slate-700">Analyst</div>
+                            <div class="text-xs text-slate-500">Running ML models</div>
+                        </div>
+                        <div id="analystStatus" class="text-slate-400">⏳</div>
+                    </div>
+
+                    <div id="reporterProgress"
+                        class="flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm border border-slate-200 opacity-50">
+                        <div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center">
+                            <span class="text-lg">📝</span>
+                        </div>
+                        <div class="flex-1">
+                            <div class="text-sm font-semibold text-slate-700">Reporter</div>
+                            <div class="text-xs text-slate-500">Writing final report</div>
+                        </div>
+                        <div id="reporterStatus" class="text-slate-400">⏳</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dashboard View -->
+            <div id="dashboardView" class="max-w-7xl mx-auto space-y-8 animate-fade-in">
+                <!-- Stats Row -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    <div class="bg-white p-6 rounded-xl shadow-soft border border-slate-100 card-hover">
+                        <p class="text-sm font-medium text-slate-500">Providers Monitored</p>
+                        <p id="stat_providers_monitored" class="text-3xl font-display font-bold text-slate-800 mt-2">...
+                        </p>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl shadow-soft border border-slate-100 card-hover">
+                        <p class="text-sm font-medium text-slate-500">High Risk Alerts</p>
+                        <p id="stat_high_risk_alerts" class="text-3xl font-display font-bold text-red-600 mt-2">...</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl shadow-soft border border-slate-100 card-hover">
+                        <p class="text-sm font-medium text-slate-500">Avg. Fraud Score</p>
+                        <p id="stat_avg_fraud_score" class="text-3xl font-display font-bold text-slate-800 mt-2">...</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl shadow-soft border border-slate-100 card-hover">
+                        <p class="text-sm font-medium text-slate-500">Active Investigations</p>
+                        <p id="stat_active_investigations" class="text-3xl font-display font-bold text-blue-600 mt-2">
+                            ...</p>
+                    </div>
+                </div>
+
+                <!-- Watchlist Table -->
+                <div class="bg-white rounded-xl shadow-soft border border-slate-100 overflow-hidden">
+                    <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                        <h3 class="font-display font-semibold text-lg text-slate-800">Priority Watchlist</h3>
+                        <button id="viewAllBtn" class="text-sm text-blue-600 font-medium hover:text-blue-800">View
+                            All</button>
+                    </div>
+                    <table class="w-full text-left">
+                        <thead class="bg-slate-50 text-slate-500 text-xs uppercase font-semibold tracking-wider">
+                            <tr>
+                                <th class="px-6 py-4">Provider NPI</th>
+                                <th class="px-6 py-4">Specialty</th>
+                                <th class="px-6 py-4">Risk Status</th>
+                                <th class="px-6 py-4 text-right">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dashboardTableBody" class="divide-y divide-slate-100">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Provider Directory View -->
+            <div id="directoryView" class="hidden max-w-7xl mx-auto space-y-6 animate-fade-in">
+                <!-- Table -->
+                <div class="bg-white rounded-xl shadow-soft border border-slate-100 overflow-hidden">
+                    <table class="w-full text-left">
+                        <thead class="bg-slate-50 text-slate-500 text-xs uppercase font-semibold tracking-wider">
+                            <!-- Sortable Headers -->
+                            <tr>
+                                <th class="px-6 py-4 cursor-pointer hover:bg-slate-100 transition-colors"
+                                    onclick="handleSort('npi')">
+                                    <div class="flex items-center gap-2">
+                                        NPI <span id="sortIcon_npi" class="text-slate-400">↕</span>
+                                    </div>
+                                </th>
+                                <th class="px-6 py-4 cursor-pointer hover:bg-slate-100 transition-colors"
+                                    onclick="handleSort('name')">
+                                    <div class="flex items-center gap-2">
+                                        Provider Name <span id="sortIcon_name" class="text-slate-400">↕</span>
+                                    </div>
+                                </th>
+                                <th class="px-6 py-4 cursor-pointer hover:bg-slate-100 transition-colors"
+                                    onclick="handleSort('specialty')">
+                                    <div class="flex items-center gap-2">
+                                        Specialty <span id="sortIcon_specialty" class="text-slate-400">↕</span>
+                                    </div>
+                                </th>
+                                <th class="px-6 py-4 cursor-pointer hover:bg-slate-100 transition-colors"
+                                    onclick="handleSort('cost')">
+                                    <div class="flex items-center gap-2">
+                                        Cost/Service <span id="sortIcon_cost" class="text-slate-400">↕</span>
+                                    </div>
+                                </th>
+                                <th class="px-6 py-4 cursor-pointer hover:bg-slate-100 transition-colors"
+                                    onclick="handleSort('risk')">
+                                    <div class="flex items-center gap-2">
+                                        Risk Status <span id="sortIcon_risk" class="text-slate-400">↕</span>
+                                    </div>
+                                </th>
+                                <th class="px-6 py-4 text-right">Action</th>
+                            </tr>
+                            <!-- Filter Inputs -->
+                            <tr class="bg-white border-b border-slate-100">
+                                <th class="px-6 py-2">
+                                    <input type="text" id="filter_npi" placeholder="Filter NPI..."
+                                        class="w-full px-3 py-1.5 text-xs border border-slate-200 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent font-normal normal-case">
+                                </th>
+                                <th class="px-6 py-2">
+                                    <input type="text" id="filter_name" placeholder="Filter Name..."
+                                        class="w-full px-3 py-1.5 text-xs border border-slate-200 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent font-normal normal-case">
+                                </th>
+                                <th class="px-6 py-2">
+                                    <input type="text" id="filter_specialty" placeholder="Filter Specialty..."
+                                        class="w-full px-3 py-1.5 text-xs border border-slate-200 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent font-normal normal-case">
+                                </th>
+                                <th class="px-6 py-2">
+                                    <!-- No filter for cost currently -->
+                                </th>
+                                <th class="px-6 py-2"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="directoryTableBody" class="divide-y divide-slate-100">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                    <!-- Pagination -->
+                    <div class="px-6 py-4 border-t border-slate-100 flex justify-between items-center bg-slate-50/50">
+                        <span id="dirPageInfo" class="text-sm text-slate-600">Showing 0-0 of 0</span>
+                        <div class="flex gap-2">
+                            <button id="dirPrevBtn"
+                                class="px-4 py-2 border border-slate-200 rounded-lg text-sm font-medium hover:bg-white disabled:opacity-50">Previous</button>
+                            <button id="dirNextBtn"
+                                class="px-4 py-2 border border-slate-200 rounded-lg text-sm font-medium hover:bg-white disabled:opacity-50">Next</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Manual Analysis View -->
+            <div id="manualAnalysisView" class="hidden max-w-4xl mx-auto animate-fade-in">
+                <div class="bg-white rounded-2xl shadow-lg border border-slate-100 overflow-hidden">
+                    <div class="bg-gradient-to-r from-blue-600 to-blue-700 px-8 py-6">
+                        <h2 class="text-2xl font-display font-bold text-white">Manual "What-If" Analysis</h2>
+                        <p class="text-blue-100 mt-1">Simulate a provider profile to assess potential fraud risk.</p>
+                    </div>
+                    <form id="manualAnalysisForm" class="p-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="space-y-2">
+                            <label class="text-sm font-semibold text-slate-700">Total Service Cost ($)</label>
+                            <input type="number" id="manual_total_service_cost"
+                                class="w-full rounded-lg border-slate-300 focus:border-blue-500 focus:ring-blue-500 shadow-sm py-2.5 px-3"
+                                value="50000">
+                        </div>
+                        <div class="space-y-2">
+                            <label class="text-sm font-semibold text-slate-700">Total Services (Count)</label>
+                            <input type="number" id="manual_total_services"
+                                class="w-full rounded-lg border-slate-300 focus:border-blue-500 focus:ring-blue-500 shadow-sm py-2.5 px-3"
+                                value="200">
+                        </div>
+                        <div class="space-y-2">
+                            <label class="text-sm font-semibold text-slate-700">Total Beneficiaries (Phys)</label>
+                            <input type="number" id="manual_total_benes_phys"
+                                class="w-full rounded-lg border-slate-300 focus:border-blue-500 focus:ring-blue-500 shadow-sm py-2.5 px-3"
+                                value="100">
+                        </div>
+                        <div class="space-y-2">
+                            <label class="text-sm font-semibold text-slate-700">Total Drug Cost ($)</label>
+                            <input type="number" id="manual_total_drug_cost"
+                                class="w-full rounded-lg border-slate-300 focus:border-blue-500 focus:ring-blue-500 shadow-sm py-2.5 px-3"
+                                value="20000">
+                        </div>
+                        <div class="space-y-2">
+                            <label class="text-sm font-semibold text-slate-700">Total Prescriptions</label>
+                            <input type="number" id="manual_total_scripts"
+                                class="w-full rounded-lg border-slate-300 focus:border-blue-500 focus:ring-blue-500 shadow-sm py-2.5 px-3"
+                                value="150">
+                        </div>
+                        <div class="space-y-2">
+                            <label class="text-sm font-semibold text-slate-700">Total Beneficiaries (Presc)</label>
+                            <input type="number" id="manual_total_benes_presc"
+                                class="w-full rounded-lg border-slate-300 focus:border-blue-500 focus:ring-blue-500 shadow-sm py-2.5 px-3"
+                                value="80">
+                        </div>
+                        <div class="md:col-span-2 space-y-2">
+                            <label class="text-sm font-semibold text-slate-700">Specialty</label>
+                            <select id="manual_specialty"
+                                class="w-full rounded-lg border-slate-300 focus:border-blue-500 focus:ring-blue-500 shadow-sm py-2.5 px-3 bg-white">
+                                <option value="Cardiology">Cardiology</option>
+                                <option value="Internal Medicine">Internal Medicine</option>
+                                <option value="Family Practice">Family Practice</option>
+                                <option value="General Surgery">General Surgery</option>
+                            </select>
+                        </div>
+                        <div class="md:col-span-2 pt-4">
+                            <button type="submit"
+                                class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 px-4 rounded-xl shadow-lg shadow-blue-600/30 transition-all transform hover:-translate-y-0.5">
+                                Run AI Analysis
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Report View -->
+            <div id="reportView" class="hidden max-w-6xl mx-auto space-y-8 animate-fade-in">
+                <!-- Header Card -->
+                <div
+                    class="bg-white rounded-2xl shadow-soft border border-slate-100 p-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                    <div>
+                        <div class="flex items-center space-x-3">
+                            <h1 id="reportProviderName" class="text-3xl font-display font-bold text-slate-900">Dr. John
+                                Doe</h1>
+                            <span id="reportSpecialty"
+                                class="px-3 py-1 bg-slate-100 text-slate-600 text-xs font-bold uppercase tracking-wide rounded-full">Cardiology</span>
+                        </div>
+                        <p id="reportProviderNpi" class="mt-1 text-slate-500 font-mono">NPI: 1234567890</p>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <div class="text-right">
+                            <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Fraud Risk Score</p>
+                            <p id="reportFinalScore" class="text-4xl font-display font-bold text-slate-900">0.00</p>
+                        </div>
+                        <div id="reportRiskBadge"
+                            class="h-16 w-16 rounded-2xl flex items-center justify-center text-2xl shadow-inner">
+                            ⚠️
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <!-- Left Column: Narrative -->
+                    <div class="lg:col-span-2 space-y-8">
+                        <!-- AI Narrative -->
+                        <div class="bg-white rounded-2xl shadow-soft border border-slate-100 overflow-hidden">
+                            <div
+                                class="px-6 py-4 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white flex items-center space-x-2">
+                                <span class="text-xl">🤖</span>
+                                <h3 class="font-display font-bold text-lg text-slate-800">AI Analyst Report</h3>
+                            </div>
+                            <div id="reportAINarrative" class="p-8 prose prose-slate max-w-none">
+                                <!-- Content injected here -->
+                            </div>
+                        </div>
+
+                        <!-- Feature Table -->
+                        <div class="bg-white rounded-2xl shadow-soft border border-slate-100 overflow-hidden">
+                            <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+                                <h3 class="font-display font-bold text-lg text-slate-800">Raw Feature Data</h3>
+                                <button id="toggleFeatureHelp"
+                                    class="text-xs text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1">
+                                    <span>ℹ️</span> What's This?
+                                </button>
+                            </div>
+
+                            <!-- Expandable Help Section -->
+                            <div id="featureHelpSection"
+                                class="hidden px-6 py-4 bg-blue-50 border-b border-blue-200 text-xs space-y-2">
+                                <p class="font-semibold text-blue-900">📋 Understanding Raw Feature Data:</p>
+                                <ul class="space-y-1 text-blue-800 ml-4">
+                                    <li>• These are the <strong>actual values</strong> fed into the fraud detection
+                                        model</li>
+                                    <li>• <strong>Raw values ≠ SHAP values</strong>: SHAP shows <em>impact</em>, not the
+                                        raw metric</li>
+                                    <li>• Archetype values are binary (1.00 = belongs to cluster, 0.00 = doesn't)</li>
+                                    <li>• Values are scaled/normalized for model input</li>
+                                </ul>
+                                <p class="text-blue-700 mt-2 italic">💡 Hover over each metric for interpretation
+                                    guidance</p>
+                            </div>
+
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left text-sm">
+                                    <thead class="bg-slate-50 text-slate-500 font-semibold">
+                                        <tr>
+                                            <th class="px-6 py-3">Metric</th>
+                                            <th class="px-6 py-3">Value</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="reportFeatureTable" class="divide-y divide-slate-100"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Column: Stats & Visuals -->
+                    <div class="space-y-8">
+                        <!-- Key Stats -->
+                        <div class="bg-white rounded-2xl shadow-soft border border-slate-100 p-6">
+                            <h3 class="font-display font-bold text-sm text-slate-500 uppercase tracking-wider mb-4">
+                                Model Insights</h3>
+                            <div class="space-y-4">
+                                <div class="group relative cursor-help">
+                                    <div class="flex justify-between text-sm mb-1">
+                                        <span class="text-slate-600 flex items-center gap-1">
+                                            Base Risk (Average)
+                                            <span class="text-blue-500 text-xs">ℹ️</span>
+                                        </span>
+                                        <span id="reportBaseValue" class="font-bold text-slate-900">0.00</span>
+                                    </div>
+                                    <div class="w-full bg-slate-100 rounded-full h-2">
+                                        <div class="bg-slate-400 h-2 rounded-full" style="width: 50%"></div>
+                                    </div>
+
+                                    <!-- Tooltip for Base Risk -->
+                                    <div
+                                        class="absolute left-0 bottom-full mb-2 hidden group-hover:block w-80 bg-slate-900 text-white text-xs rounded-lg p-3 shadow-xl z-50">
+                                        <div class="font-bold mb-1">📊 Base Risk (SHAP Expected Value)</div>
+                                        <div class="text-slate-300 mb-2">
+                                            This is the model's baseline prediction - the average fraud score across all
+                                            providers in the training data.
+                                        </div>
+                                        <div class="bg-blue-900 bg-opacity-30 border border-blue-400 rounded p-2">
+                                            <strong class="text-blue-300">How to interpret:</strong>
+                                            <ul class="mt-1 space-y-1 text-slate-300 ml-4">
+                                                <li>• This is the "starting point" before considering this provider's
+                                                    specific features</li>
+                                                <li>• SHAP values then adjust UP or DOWN from this baseline</li>
+                                                <li>• Final Score = Base Risk + Sum of all SHAP values</li>
+                                            </ul>
+                                        </div>
+                                        <div class="text-slate-400 text-[10px] mt-2">
+                                            💡 A base risk of ~0.83 means the average provider has an 83% fraud
+                                            probability in the model's view
+                                        </div>
+                                        <div
+                                            class="absolute left-8 top-full w-2 h-2 bg-slate-900 transform rotate-45 -mt-1">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="pt-4 border-t border-slate-100">
+                                    <p class="text-xs text-slate-400 uppercase font-bold">Top Risk Factor</p>
+                                    <p id="reportTopFactor" class="text-lg font-medium text-slate-800 mt-1 truncate">
+                                        Cost per Service</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- SHAP Visualization -->
+                        <div class="bg-white rounded-2xl shadow-soft border border-slate-100 p-6">
+                            <div class="flex justify-between items-center mb-4">
+                                <h3 class="font-display font-bold text-sm text-slate-500 uppercase tracking-wider">Risk
+                                    Contributors (SHAP)</h3>
+                                <button id="toggleShapHelp"
+                                    class="text-xs text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1">
+                                    <span>ℹ️</span> Learn More
+                                </button>
+                            </div>
+
+                            <!-- Expandable Help Section -->
+                            <div id="shapHelpSection"
+                                class="hidden mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg text-xs space-y-2">
+                                <p class="font-semibold text-blue-900">📊 Understanding SHAP Values:</p>
+                                <ul class="space-y-1 text-blue-800 ml-4">
+                                    <li>• <strong>Positive values (+)</strong> = Feature <span
+                                            class="text-red-600 font-bold">INCREASES</span> fraud risk</li>
+                                    <li>• <strong>Negative values (−)</strong> = Feature <span
+                                            class="text-green-600 font-bold">DECREASES</span> fraud risk</li>
+                                    <li>• <strong>Larger magnitude</strong> = Stronger impact on the final score</li>
+                                    <li>• Baseline average fraud score is ~0.50</li>
+                                </ul>
+                                <p class="text-blue-700 mt-2 italic">💡 Hover over each bar for detailed explanations
+                                </p>
+                            </div>
+
+                            <div id="shapContainer" class="space-y-3">
+                                <!-- Bars injected here -->
+                            </div>
+                            <div class="mt-4 flex justify-between text-xs text-slate-400">
+                                <span>Reduces Risk</span>
+                                <span>Increases Risk</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Architecture View -->
+            <div id="architectureView" class="hidden max-w-5xl mx-auto animate-fade-in">
+                <div class="bg-white rounded-2xl shadow-soft border border-slate-100 p-10 text-center">
+                    <h1 class="text-3xl font-display font-bold text-slate-900 mb-4">System Architecture</h1>
+                    <p class="text-slate-600 mb-12 max-w-2xl mx-auto">A decoupled, agentic architecture designed for
+                        scalable and explainable fraud detection.</p>
+
+                    <!-- Simple CSS Diagram -->
+                    <div class="relative py-10">
+                        <div class="flex justify-center gap-8 mb-16">
+                            <div class="w-48 p-4 bg-white border-2 border-slate-200 rounded-xl shadow-sm z-10">
+                                <div class="text-2xl mb-2">👤</div>
+                                <div class="font-bold text-slate-700">Investigator</div>
+                            </div>
+                        </div>
+
+                        <!-- Connecting Lines -->
+                        <div
+                            class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-px h-48 bg-slate-300 -z-0">
+                        </div>
+
+                        <div class="flex justify-center gap-12">
+                            <div class="w-48 p-6 bg-blue-50 border-2 border-blue-200 rounded-xl shadow-sm z-10">
+                                <div class="text-2xl mb-2">🤖</div>
+                                <div class="font-bold text-blue-900">AI Agents</div>
+                                <div class="text-xs text-blue-600 mt-1">Investigator • Analyst • Reporter</div>
+                            </div>
+                        </div>
+
+                        <div class="flex justify-center gap-8 mt-16">
+                            <div class="w-40 p-4 bg-slate-50 border border-slate-200 rounded-lg">
+                                <div class="text-xs font-bold text-slate-500">TensorFlow</div>
+                                <div class="text-sm font-semibold">Prediction</div>
+                            </div>
+                            <div class="w-40 p-4 bg-slate-50 border border-slate-200 rounded-lg">
+                                <div class="text-xs font-bold text-slate-500">SHAP</div>
+                                <div class="text-sm font-semibold">Explainability</div>
+                            </div>
+                            <div class="w-40 p-4 bg-slate-50 border border-slate-200 rounded-lg">
+                                <div class="text-xs font-bold text-slate-500">Gemini</div>
+                                <div class="text-sm font-semibold">Reasoning</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+        // Feature explanations for SHAP tooltips
+        const featureExplanations = {
+            'spb_z_tanh': {
+                name: 'Services Per Beneficiary (Normalized)',
+                description: 'Measures service volume per patient compared to specialty peers',
+                positive: 'Provider delivers MORE services per patient than peers → Over-servicing concern',
+                negative: 'Provider delivers FEWER services per patient than peers → Conservative practice',
+                ranges: 'Low: -1.0 to -0.3 | Medium: -0.3 to +0.3 | High: +0.3 to +1.0'
+            },
+            'cost_per_service': {
+                name: 'Cost Per Service',
+                description: 'Average cost charged per service/procedure',
+                positive: 'Provider charges MORE than expected → Potential over-billing',
+                negative: 'Provider charges LESS than expected → Reasonable pricing (protective)',
+                ranges: 'Varies by specialty: Low: <$50 | Medium: $50-$150 | High: >$150'
+            },
+            'services_per_bene': {
+                name: 'Services Per Beneficiary (Raw)',
+                description: 'Actual number of services per unique patient',
+                positive: 'Higher service volume per patient → Potential over-servicing',
+                negative: 'Lower service volume per patient → Conservative care',
+                ranges: 'Low: <2 | Medium: 2-5 | High: >5 services per patient'
+            },
+            'pagerank_centrality': {
+                name: 'Network Centrality',
+                description: 'Provider\'s position in healthcare referral network',
+                positive: 'Anomalous connectivity (High OR Low) → Potential fraud ring or suspicious isolation',
+                negative: 'Typical network connectivity → Standard practice pattern',
+                ranges: 'Median: 7.36e-07 | Extremes (0 or very high) can be risky'
+            },
+            'Routine Care': {
+                name: 'Routine Care Archetype',
+                description: 'Medium cost (~$77), medium volume (~4.5 services/patient)',
+                positive: 'Belonging to this cluster increases risk',
+                negative: 'Not in this cluster',
+                ranges: 'Standard general practice pattern - LOW risk profile'
+            },
+            'High-Value Specialist': {
+                name: 'High-Value Specialist Archetype',
+                description: 'Very high cost (~$71,908), very low volume',
+                positive: 'Belonging to this cluster increases risk',
+                negative: 'Not in this cluster',
+                ranges: 'Specialized procedures (transplants, oncology) - MEDIUM-HIGH risk'
+            },
+            'Tier 2 High Cost': {
+                name: 'Tier 2 High Cost Archetype',
+                description: 'High cost (~$21,485), low volume (~1.3 services/patient)',
+                positive: 'Belonging to this cluster increases risk',
+                negative: 'Not in this cluster',
+                ranges: 'Specialty procedures - MEDIUM risk profile'
+            },
+            'Elevated Risk Profile': {
+                name: 'Elevated Risk Profile Archetype',
+                description: 'Moderate cost (~$2,794), higher volume (~3.7 services/patient)',
+                positive: 'Belonging to this cluster increases risk',
+                negative: 'Not in this cluster',
+                ranges: 'Potential over-billing pattern - MEDIUM-HIGH risk'
+            },
+            'Extreme Outlier': {
+                name: 'Extreme Outlier Archetype',
+                description: 'Extremely high cost (~$355,925), minimal volume',
+                positive: 'Belonging to this cluster STRONGLY increases risk',
+                negative: 'Not in this cluster',
+                ranges: 'Unusual billing pattern - HIGH risk, warrants investigation'
+            }
+        };
+
+        // Raw feature value interpretations
+        const rawFeatureInterpretations = {
+            'spb_z_tanh': {
+                description: 'Normalized z-score of services per beneficiary (tanh-transformed)',
+                interpretation: (val) => {
+                    if (val > 0.3) return `🔴 ABOVE SPECIALTY AVERAGE (${val.toFixed(2)}): More services per patient than typical specialty providers → Over-servicing concern`;
+                    if (val > -0.3) return `🟡 AVERAGE (${val.toFixed(2)}): Typical service volume for specialty`;
+                    return `🟢 BELOW SPECIALTY AVERAGE (${val.toFixed(2)}): Fewer services per patient than typical specialty providers → Conservative care`;
+                },
+                range: 'Range: -1.0 to +1.0 (normalized)'
+            },
+            'cost_per_service': {
+                description: 'Average dollar amount charged per service/procedure',
+                interpretation: (val) => {
+                    if (val > 150) return `🔴 HIGH ($${val.toFixed(2)}): Above typical range, potential over-billing`;
+                    if (val > 50) return `🟡 MEDIUM ($${val.toFixed(2)}): Within normal range for specialty`;
+                    return `🟢 LOW ($${val.toFixed(2)}): Below average pricing`;
+                },
+                range: 'Varies by specialty'
+            },
+            'services_per_bene': {
+                description: 'Raw count of services/prescriptions per unique patient',
+                interpretation: (val) => {
+                    if (val > 8) return `🔴 ABOVE SPECIALTY AVERAGE (${val.toFixed(2)}): High service volume per patient → Over-servicing concern`;
+                    if (val > 4) return `🟡 AVERAGE (${val.toFixed(2)}): Moderate service volume`;
+                    return `🟢 LOW FOR SPECIALTY (${val.toFixed(2)}): Below average for specialty → Conservative care`;
+                },
+                range: 'Typical: 2-5 services per patient'
+            },
+            'pagerank_centrality': {
+                description: 'Network centrality score (position in referral network)',
+                interpretation: (val) => {
+                    const median = 7.36e-07;
+                    if (val > median * 2) return `\ud83d\udd34 HIGH (${val.toExponential(2)}): Highly connected in network`;
+                    if (val > median * 0.5) return `\ud83d\udfe1 MEDIUM (${val.toExponential(2)}): Average network position`;
+                    return `\ud83d\udfe2 LOW (${val.toExponential(2)}): Isolated practice, minimal network connections`;
+                },
+                range: 'Median: 7.36e-07',
+                note: '\u26a0\ufe0f Note: Raw value shows network position. SHAP value shows how this impacts fraud risk (can be negative even if raw value is positive).'
+            },
+            'Routine Care': {
+                description: 'Archetype: Medium cost (~$77), medium volume (~4.5 services/patient)',
+                interpretation: (val) => val === 1 ? '\u2705 Provider belongs to this cluster (standard practice pattern)' : '\u274c Provider does NOT belong to this cluster',
+                range: 'Binary: 1.00 = Yes, 0.00 = No'
+            },
+            'High-Value Specialist': {
+                description: 'Archetype: Very high cost (~$71,908), very low volume',
+                interpretation: (val) => val === 1 ? '\u2705 Provider belongs to this cluster (specialized procedures)' : '\u274c Provider does NOT belong to this cluster',
+                range: 'Binary: 1.00 = Yes, 0.00 = No'
+            },
+            'Tier 2 High Cost': {
+                description: 'Archetype: High cost (~$21,485), low volume (~1.3 services/patient)',
+                interpretation: (val) => val === 1 ? '\u2705 Provider belongs to this cluster (specialty procedures)' : '\u274c Provider does NOT belong to this cluster',
+                range: 'Binary: 1.00 = Yes, 0.00 = No'
+            },
+            'Elevated Risk Profile': {
+                description: 'Archetype: Moderate cost (~$2,794), higher volume (~3.7 services/patient)',
+                interpretation: (val) => val === 1 ? '\u26a0\ufe0f Provider belongs to this cluster (potential over-billing pattern)' : '\u274c Provider does NOT belong to this cluster',
+                range: 'Binary: 1.00 = Yes, 0.00 = No'
+            },
+            'Extreme Outlier': {
+                description: 'Archetype: Extremely high cost (~$355,925), minimal volume',
+                interpretation: (val) => val === 1 ? '\ud83d\udea8 Provider belongs to this cluster (HIGH RISK - unusual billing)' : '\u274c Provider does NOT belong to this cluster',
+                range: 'Binary: 1.00 = Yes, 0.00 = No'
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', function () {
+            // --- DOM Elements ---
+            const views = {
+                dashboard: document.getElementById('dashboardView'),
+                report: document.getElementById('reportView'),
+                architecture: document.getElementById('architectureView'),
+                manual: document.getElementById('manualAnalysisView'),
+                directory: document.getElementById('directoryView')
+            };
+            const links = {
+                dashboard: document.getElementById('dashboardLink'),
+                architecture: document.getElementById('architectureLink'),
+                manual: document.getElementById('manualAnalysisLink'),
+                directory: document.getElementById('directoryLink')
+            };
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            const pageTitle = document.getElementById('pageTitle');
+
+            // --- Navigation ---
+            function showView(viewName) {
+                Object.keys(views).forEach(key => {
+                    views[key].classList.add('hidden');
+                    if (links[key]) links[key].classList.remove('active');
+                });
+
+                views[viewName].classList.remove('hidden');
+                if (links[viewName]) links[viewName].classList.add('active');
+
+                const titles = {
+                    dashboard: 'Dashboard Overview',
+                    report: 'Investigation Report',
+                    manual: 'Manual Analysis',
+                    architecture: 'System Architecture',
+                    directory: 'Provider Directory'
+                };
+                pageTitle.textContent = titles[viewName] || 'Overview';
+            }
+
+            // --- API Handlers ---
+            // Agent progress animation helper
+            function updateAgentProgress(agentName, status) {
+                const agentMap = {
+                    'investigator': 'investigatorProgress',
+                    'analyst': 'analystProgress',
+                    'reporter': 'reporterProgress'
+                };
+
+                const progressDiv = document.getElementById(agentMap[agentName]);
+                const statusDiv = document.getElementById(`${agentName}Status`);
+
+                if (status === 'working') {
+                    progressDiv.classList.remove('opacity-50');
+                    progressDiv.classList.add('border-blue-500', 'bg-blue-50');
+                    statusDiv.innerHTML = '<div class="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>';
+                } else if (status === 'done') {
+                    progressDiv.classList.remove('border-blue-500', 'bg-blue-50');
+                    progressDiv.classList.add('border-green-500', 'bg-green-50');
+                    statusDiv.textContent = '✅';
+                }
+            }
+
+            function resetAgentProgress() {
+                ['investigator', 'analyst', 'reporter'].forEach(agent => {
+                    const progressDiv = document.getElementById(`${agent}Progress`);
+                    const statusDiv = document.getElementById(`${agent}Status`);
+                    progressDiv.className = 'flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm border border-slate-200 opacity-50';
+                    statusDiv.textContent = '⏳';
+                });
+                // Make investigator visible initially
+                document.getElementById('investigatorProgress').classList.remove('opacity-50');
+            }
+
+            async function handleAnalysis(url, payload) {
+                loadingOverlay.classList.remove('hidden');
+                resetAgentProgress();
+
+                try {
+                    // Simulate agent progress
+                    updateAgentProgress('investigator', 'working');
+
+                    // Start the actual API call
+                    const responsePromise = fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    // Simulate investigator working (1 second)
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    updateAgentProgress('investigator', 'done');
+
+                    // Simulate analyst working (2 seconds)
+                    updateAgentProgress('analyst', 'working');
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                    updateAgentProgress('analyst', 'done');
+
+                    // Simulate reporter working
+                    updateAgentProgress('reporter', 'working');
+
+                    // Wait for the actual response
+                    const response = await responsePromise;
+                    if (!response.ok) throw new Error((await response.json()).detail || 'Analysis failed');
+                    const data = await response.json();
+
+                    // Small delay to show reporter completion
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    updateAgentProgress('reporter', 'done');
+
+                    // Small delay before showing results
+                    await new Promise(resolve => setTimeout(resolve, 300));
+
+                    renderReport(data);
+                    showView('report');
+                } catch (error) {
+                    alert(error.message);
+                } finally {
+                    loadingOverlay.classList.add('hidden');
+                    resetAgentProgress();
+                }
+            }
+
+            document.getElementById('npiSearchForm').addEventListener('submit', (e) => {
+                e.preventDefault();
+                const npi = document.getElementById('npiInput').value.trim();
+                if (npi) handleAnalysis('http://127.0.0.1:8000/analyze_provider', { npi: parseInt(npi) });
+            });
+
+            document.getElementById('manualAnalysisForm').addEventListener('submit', (e) => {
+                e.preventDefault();
+                const payload = {
+                    total_service_cost: parseFloat(document.getElementById('manual_total_service_cost').value),
+                    total_services: parseInt(document.getElementById('manual_total_services').value),
+                    total_benes_phys: parseInt(document.getElementById('manual_total_benes_phys').value),
+                    total_drug_cost: parseFloat(document.getElementById('manual_total_drug_cost').value),
+                    total_scripts: parseInt(document.getElementById('manual_total_scripts').value),
+                    total_benes_presc: parseInt(document.getElementById('manual_total_benes_presc').value),
+                    specialty: document.getElementById('manual_specialty').value
+                };
+                handleAnalysis('http://127.0.0.1:8000/analyze_new_provider', payload);
+            });
+
+            // --- Rendering ---
+            function renderReport(data) {
+                document.getElementById('reportProviderName').textContent = data.name;
+                document.getElementById('reportSpecialty').textContent = data.specialty;
+                document.getElementById('reportProviderNpi').textContent = `NPI: ${data.npi}`;
+
+                const score = data.finalScore;
+                document.getElementById('reportFinalScore').textContent = score.toFixed(2);
+
+                const badge = document.getElementById('reportRiskBadge');
+                if (score > 0.75) {
+                    badge.className = 'h-16 w-16 rounded-2xl flex items-center justify-center text-3xl shadow-inner bg-red-100 text-red-600 border border-red-200';
+                    badge.textContent = '🚨';
+                } else if (score > 0.30) {
+                    badge.className = 'h-16 w-16 rounded-2xl flex items-center justify-center text-3xl shadow-inner bg-yellow-100 text-yellow-600 border border-yellow-200';
+                    badge.textContent = '⚠️';
+                } else {
+                    badge.className = 'h-16 w-16 rounded-2xl flex items-center justify-center text-3xl shadow-inner bg-green-100 text-green-600 border border-green-200';
+                    badge.textContent = '✅';
+                }
+
+                document.getElementById('reportBaseValue').textContent = data.baseValue.toFixed(3);
+                document.getElementById('reportTopFactor').textContent = data.topFactor;
+                document.getElementById('reportAINarrative').innerHTML = data.aiNarrative;
+
+                // SHAP Visualization
+                const container = document.getElementById('shapContainer');
+                container.innerHTML = '';
+                const maxVal = Math.max(...data.shap.map(s => Math.abs(s.value))) || 1;
+
+                data.shap.sort((a, b) => Math.abs(b.value) - Math.abs(a.value)).slice(0, 5).forEach(item => {
+                    const width = (Math.abs(item.value) / maxVal) * 100;
+                    const color = item.value > 0 ? 'bg-red-500' : 'bg-blue-500';
+                    const impact = item.value > 0 ? 'INCREASES' : 'DECREASES';
+                    const impactColor = item.value > 0 ? 'text-red-600' : 'text-green-600';
+                    const arrow = item.value > 0 ? '⚠️ ↑' : '✅ ↓';
+
+                    // Get explanation for this feature
+                    const explanation = featureExplanations[item.name] || {
+                        description: 'Feature impact on fraud risk',
+                        positive: 'Increases fraud risk',
+                        negative: 'Decreases fraud risk'
+                    };
+
+                    const tooltipText = item.value > 0 ? explanation.positive : explanation.negative;
+
+                    const row = document.createElement('div');
+                    row.className = 'group relative cursor-help';
+                    row.innerHTML = `
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="font-medium text-slate-700">${item.name}</span>
+                            <span class="${impactColor} font-bold">${arrow} ${item.value > 0 ? '+' : ''}${item.value.toFixed(3)}</span>
+                        </div>
+                        <div class="w-full bg-slate-100 rounded-full h-1.5">
+                            <div class="${color} h-1.5 rounded-full transition-all" style="width: ${width}%"></div>
+                        </div>
+                        
+                        <!-- Tooltip -->
+                        <div class="absolute left-0 bottom-full mb-2 hidden group-hover:block w-72 bg-slate-900 text-white text-xs rounded-lg p-3 shadow-xl z-50">
+                            <div class="font-bold mb-1">${explanation.name || item.name}</div>
+                            <div class="text-slate-300 mb-2">${explanation.description}</div>
+                            <div class="${impactColor.replace('text-', 'bg-').replace('600', '900')} bg-opacity-20 border ${impactColor.replace('text-', 'border-')} rounded p-2 mb-1">
+                                <strong class="${impactColor}">${impact} Risk:</strong> ${tooltipText}
+                            </div>
+                            ${explanation.ranges ? `<div class="text-slate-400 text-[10px] mt-1">📊 ${explanation.ranges}</div>` : ''}
+                            <div class="absolute left-4 top-full w-2 h-2 bg-slate-900 transform rotate-45 -mt-1"></div>
+                </div>
+                    `;
+                    container.appendChild(row);
+                });
+
+                // Feature Table with SHAP-aware Tooltips
+                const table = document.getElementById('reportFeatureTable');
+                table.innerHTML = '';
+
+                // Create a map of SHAP values for quick lookup
+                const shapMap = {};
+                data.shap.forEach(item => {
+                    shapMap[item.name] = item.value;
+                });
+
+                const displaySpecialty = (data.specialty && data.specialty !== '0' && data.specialty !== 'NaN') ? data.specialty : 'Unknown Specialty';
+
+                Object.entries(data.features).forEach(([k, v]) => {
+                    const interpretation = rawFeatureInterpretations[k];
+                    const numValue = Number(v);
+                    const shapValue = shapMap[k] || 0;
+
+                    // Generate SHAP-aware interpretation
+                    let smartInterpretation = '';
+                    if (interpretation && typeof interpretation.interpretation === 'function') {
+                        smartInterpretation = interpretation.interpretation(numValue);
+                    }
+
+                    // Override interpretation for metrics that have SHAP values
+                    if (k === 'cost_per_service' && Math.abs(shapValue) > 0.01) {
+                        if (shapValue < 0) {
+                            smartInterpretation = `\ud83d\udfe2 BELOW SPECIALTY AVERAGE ($${numValue.toFixed(2)}): This provider charges LESS than typical ${displaySpecialty} providers → Protective factor`;
+                        } else {
+                            smartInterpretation = `\ud83d\udd34 ABOVE SPECIALTY AVERAGE ($${numValue.toFixed(2)}): This provider charges MORE than typical ${displaySpecialty} providers → Risk factor`;
+                        }
+                    } else if (k === 'spb_z_tanh' && Math.abs(shapValue) > 0.01) {
+                        if (shapValue > 0) {
+                            smartInterpretation = `\ud83d\udd34 ABOVE SPECIALTY AVERAGE (${numValue.toFixed(2)}): More services per patient than typical ${displaySpecialty} providers → Over-servicing concern`;
+                        } else {
+                            smartInterpretation = `\ud83d\udfe2 BELOW SPECIALTY AVERAGE (${numValue.toFixed(2)}): Fewer services per patient than typical ${displaySpecialty} providers → Conservative practice`;
+                        }
+                    } else if (k === 'services_per_bene' && Math.abs(shapValue) > 0.01) {
+                        if (shapValue > 0) {
+                            smartInterpretation = `\ud83d\udd34 HIGH FOR SPECIALTY (${numValue.toFixed(2)}): Above average for ${displaySpecialty} → Potential over-servicing`;
+                        } else {
+                            smartInterpretation = `\ud83d\udfe2 LOW FOR SPECIALTY (${numValue.toFixed(2)}): Below average for ${displaySpecialty} → Conservative care`;
+                        }
+                    }
+
+                    const tr = document.createElement('tr');
+                    tr.className = 'hover:bg-slate-50 group relative cursor-help';
+                    tr.innerHTML = `
+                        <td class=\"px-6 py-3 font-medium text-slate-700\">${k}</td>
+                        <td class=\"px-6 py-3 text-slate-600 font-mono\">${(Math.abs(numValue) > 0 && Math.abs(numValue) < 0.01) ? numValue.toExponential(2) : numValue.toFixed(2)}</td>
+                        
+                        ${interpretation ? `
+                        <!-- Tooltip -->
+                        <td class=\"absolute left-0 top-full mt-1 hidden group-hover:block w-96 bg-slate-900 text-white text-xs rounded-lg p-3 shadow-xl z-50\">
+                            <div class=\"font-bold mb-1\">${k}</div>
+                            <div class=\"text-slate-300 mb-2\">${interpretation.description}</div>
+                            <div class=\"bg-blue-900 bg-opacity-30 border border-blue-400 rounded p-2 mb-1\">
+                                ${smartInterpretation}
+                            </div>
+                            <div class=\"text-slate-400 text-[10px] mt-1\">📊 ${interpretation.range}</div>
+                            ${Math.abs(shapValue) > 0.01 ? `<div class=\"text-green-300 text-[10px] mt-2 border-t border-slate-700 pt-2\">💡 SHAP value (${shapValue > 0 ? '+' : ''}${shapValue.toFixed(3)}) shows this ${shapValue > 0 ? 'INCREASES' : 'DECREASES'} fraud risk for this specialty</div>` : ''}
+                            ${interpretation.note ? `<div class=\"text-yellow-300 text-[10px] mt-2 border-t border-slate-700 pt-2\">${interpretation.note}</div>` : ''}
+                            <div class=\"absolute left-8 bottom-full w-2 h-2 bg-slate-900 transform rotate-45 mb-[-4px]\"></div>
+                        </td>
+                        ` : ''}
+                    `;
+                    table.appendChild(tr);
+                });
+            }
+
+            function renderDashboard() {
+                const sampleNpis = [
+                    { id: 1003000126, spec: 'Internal Medicine', risk: 'High' },
+                    { id: 1003000142, spec: 'Surgery', risk: 'Low' },
+                    { id: 1003000167, spec: 'Dentist', risk: 'Medium' },
+                    { id: 1003000423, spec: 'Cardiology', risk: 'High' }
+                ];
+                const tbody = document.getElementById('dashboardTableBody');
+                tbody.innerHTML = '';
+                sampleNpis.forEach(p => {
+                    const riskColor = p.risk === 'High' ? 'text-red-600 bg-red-50 border-red-100' : (p.risk === 'Medium' ? 'text-yellow-600 bg-yellow-50 border-yellow-100' : 'text-green-600 bg-green-50 border-green-100');
+                    const tr = document.createElement('tr');
+                    tr.className = "hover:bg-slate-50 transition-colors";
+                    tr.innerHTML = `
+                        <td class="px-6 py-4 font-mono text-sm text-slate-600">${p.id}</td>
+                        <td class="px-6 py-4 text-sm font-medium text-slate-800">${p.spec}</td>
+                        <td class="px-6 py-4"><span class="px-2.5 py-1 rounded-full text-xs font-bold border ${riskColor}">${p.risk}</span></td>
+                        <td class="px-6 py-4 text-right"><button data-npi="${p.id}" class="view-btn text-sm font-semibold text-blue-600 hover:text-blue-800 hover:underline">Analyze</button></td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+
+                document.querySelectorAll('.view-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const npi = e.target.dataset.npi;
+                        handleAnalysis('http://127.0.0.1:8000/analyze_provider', { npi: parseInt(npi) });
+                    });
+                });
+            }
+
+            async function fetchDashboardStats() {
+                try {
+                    const response = await fetch('http://127.0.0.1:8000/dashboard_stats');
+                    if (!response.ok) return;
+                    const data = await response.json();
+
+                    document.getElementById('stat_providers_monitored').textContent = data.providers_monitored.toLocaleString();
+                    document.getElementById('stat_high_risk_alerts').textContent = data.high_risk_alerts.toLocaleString();
+                    document.getElementById('stat_avg_fraud_score').textContent = data.avg_fraud_score.toFixed(3);
+                    document.getElementById('stat_active_investigations').textContent = data.active_investigations;
+
+                    // Update Watchlist Table
+                    const tbody = document.getElementById('dashboardTableBody');
+                    tbody.innerHTML = '';
+
+                    if (data.recent_alerts && data.recent_alerts.length > 0) {
+                        data.recent_alerts.forEach(p => {
+                            const tr = document.createElement('tr');
+                            tr.className = "hover:bg-slate-50 transition-colors";
+                            const scoreWidth = Math.min(Math.max(p.score * 100, 10), 100);
+                            const scoreColor = p.score > 0.75 ? 'bg-red-500' : (p.score > 0.30 ? 'bg-yellow-500' : 'bg-green-500');
+                            tr.innerHTML = `
+                                <td class="px-6 py-4">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-lg">👨‍⚕️</div>
+                                        <div>
+                                            <div class="font-mono text-sm text-slate-700 font-medium">${p.npi}</div>
+                                            <div class="text-xs text-slate-400">ID #${p.npi.toString().slice(-4)}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 text-sm font-medium text-slate-800">${p.specialty}</td>
+                                <td class="px-6 py-4">
+                                    <div class="w-full max-w-[140px]">
+                                        <div class="flex justify-between text-xs mb-1">
+                                            <span class="font-bold ${p.score > 0.75 ? 'text-red-600' : 'text-slate-600'}">${(p.score * 100).toFixed(0)}% Risk</span>
+                                            <span class="text-slate-400">${p.score.toFixed(2)}</span>
+                                        </div>
+                                        <div class="w-full bg-slate-100 rounded-full h-2">
+                                            <div class="${scoreColor} h-2 rounded-full" style="width: ${scoreWidth}%"></div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 text-right">
+                                    <button data-npi="${p.npi}" class="view-btn px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg text-xs font-bold transition-colors">
+                                        Analyze 🔎
+                                    </button>
+                                </td>
+                            `;
+                            tbody.appendChild(tr);
+                        });
+                    } else {
+                        tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-4 text-center text-slate-500">Scanning for high-risk providers...</td></tr>';
+                    }
+
+                    // Re-attach event listeners
+                    tbody.querySelectorAll('.view-btn').forEach(btn => {
+                        btn.addEventListener('click', (e) => {
+                            const npi = e.target.dataset.npi;
+                            handleAnalysis('http://127.0.0.1:8000/analyze_provider', { npi: parseInt(npi) });
+                        });
+                    });
+
+                } catch (error) {
+                    console.error("Failed to fetch stats:", error);
+                }
+            }
+
+            // --- Directory Logic ---
+            let dirState = {
+                page: 1,
+                limit: 10,
+                filters: { npi: '', name: '', specialty: '' },
+                sort: 'npi',
+                order: 'asc'
+            };
+
+            async function fetchDirectory() {
+                const tbody = document.getElementById('directoryTableBody');
+                tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-8 text-center"><div class="inline-block w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div></td></tr>';
+
+                // Update Sort Icons
+                ['npi', 'name', 'specialty', 'cost', 'risk'].forEach(col => {
+                    const icon = document.getElementById(`sortIcon_${col}`);
+                    if (icon) { // Check if icon exists
+                        if (dirState.sort === col) {
+                            icon.textContent = dirState.order === 'asc' ? '↑' : '↓';
+                            icon.className = 'text-blue-600 font-bold';
+                        } else {
+                            icon.textContent = '↕';
+                            icon.className = 'text-slate-400';
+                        }
+                    }
+                });
+
+                try {
+                    const params = new URLSearchParams({
+                        page: dirState.page,
+                        limit: dirState.limit,
+                        npi_filter: dirState.filters.npi,
+                        name_filter: dirState.filters.name,
+                        specialty_filter: dirState.filters.specialty,
+                        sort_by: dirState.sort,
+                        order: dirState.order
+                    });
+                    const response = await fetch(`http://127.0.0.1:8000/providers?${params}`);
+                    const data = await response.json();
+
+                    tbody.innerHTML = '';
+                    if (data.data.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-8 text-center text-slate-500">No providers found.</td></tr>';
+                        return;
+                    }
+
+                    data.data.forEach(p => {
+                        const tr = document.createElement('tr');
+                        tr.className = "hover:bg-slate-50 transition-colors";
+                        tr.innerHTML = `
+                            <td class="px-6 py-4 font-mono text-sm text-slate-600">${p.npi}</td>
+                            <td class="px-6 py-4 text-sm font-medium text-slate-800">${p.name}</td>
+                            <td class="px-6 py-4 text-sm text-slate-600">${p.specialty}</td>
+                            <td class="px-6 py-4 text-sm text-slate-600">$${p.cost_per_service.toFixed(2)}</td>
+                            <td class="px-6 py-4">
+                                ${p.risk_status === 'High'
+                                ? `<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-red-50 text-red-600 border border-red-100">
+                                         <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span> High (${p.risk_score.toFixed(2)})
+                                       </span>`
+                                : (p.risk_status === 'Medium'
+                                    ? `<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-yellow-50 text-yellow-600 border border-yellow-100">
+                                             <span class="w-1.5 h-1.5 rounded-full bg-yellow-500"></span> Medium (${p.risk_score.toFixed(2)})
+                                           </span>`
+                                    : (['Low', 'Low/Medium'].includes(p.risk_status)
+                                        ? `<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-green-50 text-green-600 border border-green-100">
+                                                 <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span> Low (${p.risk_score.toFixed(2)})
+                                               </span>`
+                                        : `<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-slate-50 text-slate-500 border border-slate-100">
+                                                 Pending
+                                               </span>`
+                                    )
+                                )
+                            }
+                            </td>
+                            <td class="px-6 py-4 text-right"><button data-npi="${p.npi}" class="view-btn text-sm font-semibold text-blue-600 hover:text-blue-800 hover:underline">Analyze</button></td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+
+                    // Update Pagination UI
+                    const start = (data.page - 1) * data.limit + 1;
+                    const end = Math.min(start + data.limit - 1, data.total);
+                    document.getElementById('dirPageInfo').textContent = `Showing ${start}-${end} of ${data.total.toLocaleString()}`;
+                    document.getElementById('dirPrevBtn').disabled = data.page <= 1;
+                    document.getElementById('dirNextBtn').disabled = data.page >= data.total_pages;
+
+                    // Re-attach event listeners
+                    tbody.querySelectorAll('.view-btn').forEach(btn => {
+                        btn.addEventListener('click', (e) => {
+                            const npi = e.target.dataset.npi;
+                            handleAnalysis('http://127.0.0.1:8000/analyze_provider', { npi: parseInt(npi) });
+                        });
+                    });
+
+                } catch (error) {
+                    console.error("Directory fetch failed:", error);
+                    tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-8 text-center text-red-500">Error loading data.</td></tr>';
+                }
+            }
+
+            // Global Sort Handler
+            window.handleSort = (column) => {
+                if (dirState.sort === column) {
+                    dirState.order = dirState.order === 'asc' ? 'desc' : 'asc';
+                } else {
+                    dirState.sort = column;
+                    dirState.order = 'asc';
+                }
+                fetchDirectory();
+            };
+
+            // Directory Event Listeners
+            let filterTimeout;
+            const handleFilterChange = (field, value) => {
+                clearTimeout(filterTimeout);
+                filterTimeout = setTimeout(() => {
+                    dirState.filters[field] = value;
+                    dirState.page = 1;
+                    fetchDirectory();
+                }, 300);
+            };
+
+            document.getElementById('filter_npi').addEventListener('input', (e) => handleFilterChange('npi', e.target.value));
+            document.getElementById('filter_name').addEventListener('input', (e) => handleFilterChange('name', e.target.value));
+            document.getElementById('filter_specialty').addEventListener('input', (e) => handleFilterChange('specialty', e.target.value));
+
+            document.getElementById('dirPrevBtn').addEventListener('click', () => {
+                if (dirState.page > 1) {
+                    dirState.page--;
+                    fetchDirectory();
+                }
+            });
+
+            document.getElementById('dirNextBtn').addEventListener('click', () => {
+                dirState.page++;
+                fetchDirectory();
+            });
+
+            document.getElementById('viewAllBtn').addEventListener('click', () => {
+                showView('directory');
+            });
+
+            // Toggle Feature Help Section
+            document.getElementById('toggleFeatureHelp').addEventListener('click', () => {
+                const helpSection = document.getElementById('featureHelpSection');
+                helpSection.classList.toggle('hidden');
+            });
+
+            // Toggle SHAP Help Section
+            document.getElementById('toggleShapHelp').addEventListener('click', () => {
+                const helpSection = document.getElementById('shapHelpSection');
+                helpSection.classList.toggle('hidden');
+            });
+
+            // Initial Load
+            fetchDirectory();
+
+            // --- Init ---
+            Object.keys(links).forEach(key => {
+                links[key].addEventListener('click', (e) => {
+                    e.preventDefault();
+                    showView(key);
+                });
+            });
+
+            // Poll for stats every 3 seconds
+            fetchDashboardStats();
+            setInterval(fetchDashboardStats, 3000);
+
+            showView('dashboard');
+        });
+    </script>
+</body>
+
+</html>
