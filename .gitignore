@@ -40,7 +40,6 @@
 **/scripts/
 **/.pytest_cache/
 **/archive/
-**/docs/
 **/logs/
 logs/**
 
