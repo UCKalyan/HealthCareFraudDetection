@@ -1934,10 +1934,15 @@ tail -f logs/auto_holds.log
 
 **Step 6: Configure Alerts**
 
-Add email/Slack notifications for daily summary:
+> **⚠️ Implementation Note:**  
+> Email notifications are **PLANNED** but not yet implemented in the Finance App.  
+> The Fraud Detection App has basic email support via `src/utils/notifications.py` for payment decisions.  
+> The configuration below shows the planned structure for future implementation.
+
+Add email/Slack notifications for daily summary (planned):
 
 ```yaml
-# In config.yaml
+# In config.yaml (PLANNED - Not yet implemented)
 notifications:
   enabled: true
   email:
@@ -1953,7 +1958,7 @@ notifications:
 - ✅ Automated daily scans configured
 - ✅ High-risk payments held before processing
 - ✅ Audit trail maintained
-- ✅ Notifications sent to stakeholders
+- 🔜 Notifications sent to stakeholders (planned feature)
 
 ---
 
@@ -2246,8 +2251,15 @@ Status Timeline:
 
 **Step 5: Finance Manager Approval**
 
+> **⚠️ Implementation Note:**  
+> Email notifications for recovery approvals are **PLANNED** but not currently implemented.  
+> Current implementation requires manual check of Finance App dashboard.  
+> No email addresses are stored in the database yet.
+
+**Planned Workflow (Future):**
+
 ```
-Manager receives email:
+Manager receives email: (PLANNED - Not yet implemented)
 ---
 Subject: Recovery Approval Required - Case #RC-2025-00142
 
@@ -2261,6 +2273,14 @@ Evidence: fraud_report_1003000142.pdf
 ---
 
 Manager clicks APPROVE
+```
+
+**Current Workflow:**
+```
+1. Manager logs into Finance App (http://localhost:8001)
+2. Navigate to Recovery → Pending Approvals
+3. Find Case #RC-2025-00142
+4. Review details and click APPROVE button
 ```
 
 **Step 6: Execute Recovery**
@@ -2282,9 +2302,10 @@ System automatically:
    - What: Approved $75,000 recovery
    - Why: Fraudulent billing confirmed
 
-4. Notifies stakeholders:
-   - Email to Legal team
-   - Slack notification to #fraud-recovery channel
+4. Notifies stakeholders: (PLANNED - Not yet implemented)
+   - Email to Legal team 🔜
+   - Slack notification to #fraud-recovery channel 🔜
+   - Currently: Manual notification required
 ```
 
 **Step 7: Monitor Recovery Status**
