@@ -1,0 +1,13 @@
+{
+  "total_providers": 104002,
+  "providers_with_partb": 104002,
+  "providers_with_partd": 104002,
+  "total_partb_payments": 990373820.3198406,
+  "total_partd_costs": 19701589948.929996,
+  "total_combined_payments": 20691963769.249836,
+  "high_cost_providers": 5201,
+  "opioid_prescribers": 32497,
+  "avg_payment_per_provider": 198957.36398578715,
+  "median_payment_per_provider": 15846.9949999835,
+  "generated_date": "2025-11-30T11:23:46.081641"
+}

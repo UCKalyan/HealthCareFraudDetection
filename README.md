@@ -25,9 +25,10 @@ FraudGuard is an advanced healthcare fraud detection system that combines **Mult
 
 - 🤖 **Multi-Agent Architecture** - Specialized AI agents for investigation, analysis, and reporting
 - 🧠 **Deep Learning** - Neural network-based fraud detection with high accuracy
-- 📊 **Explainable AI** - SHAP-based feature importance and interpretability
+- � **Nested Learning** - Dual-speed models (HOPE) for detecting emerging threats
+- �📊 **Explainable AI** - SHAP-based feature importance and interpretability
 - 🔐 **Secure Authentication** - Session-based login system
-- 🎨 **Modern UI** - Professional dashboard with real-time updates
+- 🎨 **Modern UI** - Professional dashboard with real-time updates and risk scanning
 - 🔌 **MCP Integration** - Standardized protocol for AI tool interoperability
 - 📈 **Real-time Monitoring** - Background scanning of provider database
 
@@ -252,6 +253,10 @@ The deep learning model achieves:
 - **Explainability** - SHAP values for every prediction
 - **Scalability** - Batch processing of large datasets
 - **Real-time Inference** - Fast predictions (<100ms)
+- **Nested Learning (HOPE)** - Dual-speed architecture combining:
+  - **Stable Model (Slow Weights)**: Trained on historical data for robust baseline.
+  - **Fast Model (Fast Weights)**: Adapts quickly to recent trends (Early Warning System).
+  - **Dual-Score Visualization**: Side-by-side comparison of long-term vs emerging risk.
 
 ---
 

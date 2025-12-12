@@ -70,6 +70,28 @@ Machine learning and algorithm documentation:
 
 ---
 
+#### 4. [Implementation Plan](./implementation_plan.md)
+Detailed roadmap and implementation status for system features:
+- Payment Control & Recovery System
+- Nested Learning Architecture
+- Database Schema Extensions
+- UI/UX Improvements
+
+**Target Audience**: Project Managers, Developers, Stakeholders
+
+---
+
+#### 5. [Walkthrough](./walkthrough.md)
+Comprehensive guide to implemented features:
+- Feature demonstrations
+- Verification steps
+- System architecture updates
+- Usage instructions for new capabilities
+
+**Target Audience**: Users, Testers, Developers
+
+---
+
 ## 🗂️ Quick Reference
 
 ### System Components

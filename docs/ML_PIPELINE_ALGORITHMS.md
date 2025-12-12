@@ -208,11 +208,12 @@ sequenceDiagram
     participant FeatureEngine
     participant FeatureStore
     participant Scaler
-    participant Model
+    participant StableModel
+    participant FastModel
     participant SHAPExplainer
     participant Response
     
-    User->>API: POST /analyze_provider<br/>{npi: 1234567890}
+    User->>API: POST /api/provider_risk/{npi}
     
     API->>FeatureEngine: get_features(npi)
     
@@ -222,12 +223,7 @@ sequenceDiagram
         FeatureStore-->>FeatureEngine: Return feature vector
     else Features not found
         FeatureEngine->>FeatureStore: Load raw provider data
-        FeatureStore-->>FeatureEngine: Raw data
-        FeatureEngine->>FeatureEngine: Calculate base features
-        FeatureEngine->>FeatureEngine: Apply z-score normalization
-        FeatureEngine->>FeatureEngine: Apply tanh transform
-        FeatureEngine->>FeatureEngine: Look up cluster assignment
-        FeatureEngine->>FeatureEngine: Look up pagerank
+        FeatureEngine->>FeatureEngine: Calculate features on-the-fly
         FeatureEngine-->>FeatureEngine: Feature vector ready
     end
     
@@ -236,23 +232,24 @@ sequenceDiagram
     API->>Scaler: transform(feature_vector)
     Scaler-->>API: scaled_features
     
-    API->>Model: predict(scaled_features)
-    Model->>Model: Forward pass through DNN
-    Model-->>API: risk_score [0.0-1.0]
+    par Dual Prediction
+        API->>StableModel: predict(scaled_features)
+        StableModel-->>API: stable_score
+        API->>FastModel: predict(scaled_features)
+        FastModel-->>API: fast_score
+    end
     
     API->>SHAPExplainer: shap_values(scaled_features)
-    SHAPExplainer->>SHAPExplainer: Calculate Shapley values
-    SHAPExplainer-->>API: shap_values, base_value
+    SHAPExplainer-->>API: shap_values
     
-    API->>Response: Build response object
-    Response->>Response: Format SHAP explanation
-    Response->>Response: Classify risk level
-    Response->>Response: Add metadata
+    API->>Response: Compare Scores (HOPE Logic)
+    Response->>Response: Check for Early Warning (Fast >> Stable)
+    Response->>Response: Format Response
     
-    Response-->>User: {<br/>  risk_score: 0.85,<br/>  risk_level: "HIGH",<br/>  shap_values: [...],<br/>  base_value: 0.12<br/>}
+    Response-->>User: {<br/>  stable_score: 0.85,<br/>  fast_score: 0.92,<br/>  alert: "Early Warning",<br/>  shap_values: [...]<br/>}
     
-    Note over Model: Inference time: ~50ms
-    Note over SHAPExplainer: SHAP time: ~100ms
+    Note over StableModel: Inference: ~50ms
+    Note over FastModel: Inference: ~30ms
 ```
 
 ### 2.2 Batch Inference (Monitor Agent)
@@ -344,6 +341,41 @@ graph TB
     style LOSS fill:#F39C12,stroke:#E67E22,color:#fff
     style OPTIMIZER fill:#9B59B6,stroke:#8E44AD,color:#fff
 ```
+
+### 3.3 Nested Learning Architecture (HOPE)
+
+The system uses a **Hybrid Online & Periodic Estimation (HOPE)** architecture to balance stability with responsiveness.
+
+```mermaid
+graph TB
+    INPUT[Input Features]
+    
+    subgraph "Dual-Speed System"
+        SLOW[Stable Model<br/>Retrained Weekly<br/>High Accuracy]
+        FAST[Fast Model<br/>Updated Daily<br/>High Sensitivity]
+    end
+    
+    INPUT --> SLOW
+    INPUT --> FAST
+    
+    SLOW -->|Score S| COMPARE{Compare}
+    FAST -->|Score F| COMPARE
+    
+    COMPARE -->|S ≈ F| STABLE[Stable Risk Score]
+    COMPARE -->|F >> S| ALERT[Early Warning Alert<br/>Emerging Fraud Pattern]
+    
+    style SLOW fill:#3498DB,color:#fff
+    style FAST fill:#E74C3C,color:#fff
+```
+
+**Components**:
+1.  **Stable Model**: The robust DNN described in 3.1. Retrained weekly on full verified dataset.
+2.  **Fast Model**: Lightweight version updated daily with recent feedback and emerging patterns.
+3.  **Comparison Logic**:
+    - If scores are similar, confidence is high.
+    - If Fast Model spikes while Stable is low, it triggers an "Early Warning".
+
+---
 
 ### 3.2 Training Process Detail
 

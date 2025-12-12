@@ -1,0 +1,13 @@
+{
+  "total_payments_all_time": 20691963769.24984,
+  "total_providers": 104002,
+  "average_payment_per_provider": 198957.3639857872,
+  "high_cost_providers": {
+    "count": 5201,
+    "total_payments": 10824762376.079805
+  },
+  "opioid_prescribers": {
+    "count": 32497,
+    "total_payments": 11127630982.36985
+  }
+}

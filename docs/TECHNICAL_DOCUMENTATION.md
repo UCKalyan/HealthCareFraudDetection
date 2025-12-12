@@ -85,7 +85,7 @@ z = (x - μ) / σ
 - |z| > 2: Unusual value (outlier)
 - |z| > 3: Very unusual value (strong outlier)
 
-**Example**: If a provider's cost per service is $250:
+**Example**: If a provider's cost per service is $250: 
 - Specialty mean (μ) = $100
 - Specialty std dev (σ) = $50
 - z = (250 - 100) / 50 = 3.0
@@ -317,49 +317,38 @@ FraudGuard is an advanced healthcare fraud detection system designed to identify
 ### 2.1 High-Level Architecture
 
 The system follows a modular, layered architecture:
-
 ```
 ┌─────────────────────────────────────────────────────────┐
 │                    Presentation Layer                     │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  │
-│  │   Dashboard  │  │ Investigation│  │    Search    │  │
-│  │   (Jinja2)   │  │    Reports   │  │   Interface  │  │
+│  │ Fraud Dash   │  │ Finance Dash │  │    Recovery  │  │
+│  │   (Jinja2)   │  │   (Jinja2)   │  │      UI      │  │
 │  └──────────────┘  └──────────────┘  └──────────────┘  │
 └─────────────────────────────────────────────────────────┘
                             ↓
 ┌─────────────────────────────────────────────────────────┐
 │                   Application Layer                       │
-│  ┌──────────────────────────────────────────────────┐  │
-│  │            FastAPI REST API Server               │  │
-│  │  /analyze_provider  /dashboard_stats  /search    │  │
-│  └──────────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────┘
+│  ┌───────────────────────┐   ┌───────────────────────┐  │
+│  │  Fraud Detection App  │   │      Finance App      │  │
+│  │    (FastAPI:8000)     │   │    (FastAPI:8001)     │  │
+│  └───────────┬───────────┘   └───────────┬───────────┘  │
+│              │                           │              │
+│              └─────────────┬─────────────┘              │
+│                            │                            │
+└────────────────────────────┼────────────────────────────┘
                             ↓
 ┌─────────────────────────────────────────────────────────┐
 │                    Agent Layer                            │
 │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐  │
-│  │Investigator│ │ Analyst  │ │Supervisor│ │ Reporter │  │
-│  │   Agent   │ │  Agent   │ │  Agent   │ │  Agent   │  │
+│  │Investigator│ │ Analyst  │ │Supervisor│ │ Monitor  │  │
 │  └──────────┘ └──────────┘ └──────────┘ └──────────┘  │
-│        ↓            ↓            ↓            ↓         │
-│  ┌────────────────────────────────────────────────┐    │
-│  │           LangGraph Workflow Engine             │    │
-│  └────────────────────────────────────────────────┘    │
-└─────────────────────────────────────────────────────────┘
-                            ↓
-┌─────────────────────────────────────────────────────────┐
-│                    Service Layer                          │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  │
-│  │   ML Model   │  │     SHAP     │  │   Network    │  │
-│  │  (TensorFlow)│  │  Explainer   │  │   Analysis   │  │
-│  └──────────────┘  └──────────────┘  └──────────────┘  │
 └─────────────────────────────────────────────────────────┘
                             ↓
 ┌─────────────────────────────────────────────────────────┐
 │                     Data Layer                            │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  │
-│  │   SQLite     │  │     CSV      │  │   Feature    │  │
-│  │  (Providers) │  │  (Raw Data)  │  │    Store     │  │
+│  │  Fraud DB    │  │  Finance DB  │  │   Auth DB    │  │
+│  │ (Providers)  │  │ (Recoveries) │  │  (Sessions)  │  │
 │  └──────────────┘  └──────────────┘  └──────────────┘  │
 └─────────────────────────────────────────────────────────┘
 ```
@@ -640,6 +629,35 @@ CREATE TABLE cases (
 );
 ```
 
+#### `payment_recovery_requests` Table
+```sql
+CREATE TABLE payment_recovery_requests (
+    recovery_id TEXT PRIMARY KEY,
+    transaction_id TEXT NOT NULL,
+    npi BIGINT NOT NULL,
+    original_payment_amount REAL,
+    recovery_amount REAL,
+    fraud_risk_score REAL,
+    recovery_status TEXT,  -- PENDING, APPROVED, REJECTED
+    approval_level TEXT,   -- L1_REVIEW, L2_APPROVAL, LEGAL_REVIEW
+    recovery_method TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+#### `recovery_workflow_logs` Table
+```sql
+CREATE TABLE recovery_workflow_logs (
+    log_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    recovery_id TEXT NOT NULL,
+    stage TEXT,
+    status TEXT,
+    notes TEXT,
+    actor TEXT,
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
 ---
 
 ## 5. Machine Learning Pipeline
@@ -812,8 +830,6 @@ def generate_shap_summary(model, X_train, X_test, feature_names, config):
     
     return explainer, shap_values, X_test[:100]
 ```
-
----
 
 ## 6. Multi-Agent System
 
@@ -1247,6 +1263,56 @@ Submit supervisor decision
     "status": "success",
     "message": "Decision recorded and email sent"
 }
+```
+
+---
+
+### 7.6 Payment Recovery Endpoints (Finance App)
+
+#### `POST /api/process_payment_hold`
+Attempt to hold payment or initiate recovery
+
+**Request Body**:
+```json
+{
+    "npi": 1234567890,
+    "transaction_id": "TRANS-001",
+    "fraud_score": 0.95
+}
+```
+
+**Response**:
+```json
+{
+    "success": false,
+    "requires_recovery": true,
+    "payment_category": "HISTORICAL_PROCESSED"
+}
+```
+
+#### `POST /api/initiate_recovery`
+Create new recovery request
+
+**Request Body**:
+```json
+{
+    "transaction_id": "TRANS-001",
+    "fraud_evidence": {}
+}
+```
+
+#### `GET /api/recovery/requests`
+List recovery requests
+
+**Response**:
+```json
+[
+    {
+        "recovery_id": "REC-001",
+        "status": "PENDING",
+        "amount": 5000.00
+    }
+]
 ```
 
 ---
