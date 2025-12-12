@@ -1159,6 +1159,333 @@ graph TB
 
 ---
 
+### Finance Application Agents
+
+The Finance Application employs specialized AI agents to manage payment processing, risk assessment, and recovery workflows. These agents work in conjunction with the Fraud Detection agents via the MCP protocol.
+
+#### 7. **Payment Classifier Agent** 💰
+
+- **Purpose**: Transaction Risk Assessment & Payment Decision Support
+- **Location**: `finance-app/src/services/payment_classifier.py`
+- **Integration**: Receives fraud risk scores from Fraud Detection system
+
+**Inputs:**
+- Payment transaction details (amount, date, claim ID)
+- Provider NPI and financial profile
+- Fraud risk score (from ML model via MCP)
+- Historical payment patterns
+- Provider risk classification (HIGH, MEDIUM, LOW)
+
+**Processing Logic:**
+
+```python
+def classify_payment(transaction):
+    """
+    Multi-factor payment risk classification
+    """
+    # Factor 1: Fraud Detection ML Score (weight: 50%)
+    fraud_score = get_fraud_risk_from_mcp(transaction.npi)
+    
+    # Factor 2: Payment Pattern Analysis (weight: 25%)
+    pattern_risk = analyze_payment_patterns(transaction.npi)
+    
+    # Factor 3: Amount Anomaly Detection (weight: 15%)
+    amount_risk = detect_amount_anomaly(transaction.amount)
+    
+    # Factor 4: Provider History (weight: 10%)
+    history_risk = evaluate_provider_history(transaction.npi)
+    
+    # Weighted composite score
+    composite_risk = (
+        fraud_score * 0.50 +
+        pattern_risk * 0.25 +
+        amount_risk * 0.15 +
+        history_risk * 0.10
+    )
+    
+    # Decision thresholds
+    if composite_risk >= 0.75:
+        return {
+            'risk_level': 'HIGH',
+            'decision': 'HOLD',
+            'confidence': composite_risk,
+            'requires_approval': True
+        }
+    elif composite_risk >= 0.50:
+        return {
+            'risk_level': 'MEDIUM',
+            'decision': 'REVIEW',
+            'confidence': composite_risk,
+            'requires_approval': False
+        }
+    else:
+        return {
+            'risk_level': 'LOW',
+            'decision': 'APPROVE',
+            'confidence': 1.0 - composite_risk,
+            'requires_approval': False
+        }
+```
+
+**Outputs:**
+- Risk level classification (HIGH, MEDIUM, LOW)
+- Payment decision (APPROVE, HOLD, REVIEW, REJECT)
+- Confidence score (0.0 to 1.0)
+- Detailed reasoning for decision
+- Flagged risk factors
+
+**Decision Matrix:**
+
+| Composite Risk | Risk Level | Decision | Action | Approval Required |
+|---------------|------------|----------|--------|-------------------|
+| 0.00 - 0.30 | LOW | APPROVE | Process immediately | No |
+| 0.30 - 0.50 | MEDIUM | REVIEW | Queue for manual review | No |
+| 0.50 - 0.75 | HIGH | HOLD | Suspend pending review | Yes (Level 1) |
+| 0.75 - 1.00 | CRITICAL | HOLD | Suspend, escalate | Yes (Level 2+) |
+
+**Integration Points:**
+- **MCP Call to Fraud Detection**: `get_fraud_risk(npi)` → receives ML risk score
+- **Database Updates**: Logs decision in `agent_decision_logs` table
+- **Notification System**: Alerts finance team of HOLD/REJECT decisions
+- **Audit Trail**: Complete record of classification reasoning
+
+**Performance Metrics:**
+- Processing time: < 200ms per transaction
+- Daily throughput: 10,000+ transactions
+- False positive rate: < 5%
+- True positive rate: > 85%
+
+---
+
+#### 8. **Recovery Agent** 🔄
+
+- **Purpose**: Automated Payment Recovery & Fund Reclamation
+- **Location**: `finance-app/src/services/recovery_service.py`
+- **Trigger**: Processes payments that were already disbursed but later flagged as fraudulent
+
+**Inputs:**
+- Transaction ID of processed payment
+- Updated fraud risk score (if provider re-evaluated)
+- Evidence of fraud (investigation report, SHAP analysis)
+- Payment status (PROCESSED, PAID, DISBURSED)
+- Recovery request details (amount, reason, priority)
+
+**Processing Workflow:**
+
+```mermaid
+graph TB
+    START([Recovery Initiated])
+    
+    subgraph "Stage 1: Validation"
+        VAL1{Transaction\nProcessed?}
+        VAL2{Evidence\nProvided?}
+        VAL3{Risk Score\n> 0.80?}
+    end
+    
+    subgraph "Stage 2: AI Review"
+        AI1[Recovery Agent Analysis]
+        AI2{Auto-Approve\nCriteria Met?}
+    end
+    
+    subgraph "Stage 3: Human Approval"
+        H1[Finance Manager Review]
+        H2{Amount\n> $100K?}
+        H3[Legal Team Review]
+    end
+    
+    subgraph "Stage 4: Execution"
+        EXEC1[Generate Recovery Request]
+        EXEC2[Submit to Banking System]
+        EXEC3[Update Transaction Status]
+        EXEC4[Create Audit Log]
+    end
+    
+    START --> VAL1
+    VAL1 -->|No| REJECT[Reject: Not Processed]
+    VAL1 -->|Yes| VAL2
+    VAL2 -->|No| REJECT2[Reject: Insufficient Evidence]
+    VAL2 -->|Yes| VAL3
+    VAL3 -->|No| REVIEW[Manual Review Required]
+    VAL3 -->|Yes| AI1
+    
+    AI1 --> AI2
+    AI2 -->|Yes| H1
+    AI2 -->|No| ESCALATE[Escalate to Supervisor]
+    
+    H1 --> H2
+    H2 -->|Yes| H3
+    H2 -->|No| EXEC1
+    H3 --> EXEC1
+    
+    EXEC1 --> EXEC2
+    EXEC2 --> EXEC3
+    EXEC3 --> EXEC4
+    EXEC4 --> SUCCESS([Recovery Initiated])
+    
+    style AI1 fill:#3b82f6,color:#fff
+    style H1 fill:#10b981,color:#fff
+    style EXEC1 fill:#f59e0b,color:#fff
+    style SUCCESS fill:#22c55e,color:#fff
+```
+
+**Auto-Approval Criteria:**
+
+The Recovery Agent can automatically approve recovery if ALL conditions are met:
+
+1. ✅ Fraud risk score ≥ 0.85
+2. ✅ Amount < $100,000
+3. ✅ Fraud evidence attached (PDF report)
+4. ✅ Provider not currently under legal review
+5. ✅ Payment made < 90 days ago (statute limitations)
+
+**Processing Logic:**
+
+```python
+def evaluate_recovery_request(request):
+    """
+    AI-powered recovery decision
+    """
+    # Collect evidence signals
+    signals = {
+        'fraud_risk_score': request.fraud_risk_score,
+        'amount': request.amount,
+        'evidence_quality': assess_evidence_quality(request.evidence),
+        'time_since_payment': calculate_days_since_payment(request.payment_date),
+        'provider_status': check_provider_status(request.npi),
+        'recovery_success_probability': predict_recovery_success(request)
+    }
+    
+    # Auto-approval logic
+    if (signals['fraud_risk_score'] >= 0.85 and
+        signals['amount'] < 100000 and
+        signals['evidence_quality'] >= 0.80 and
+        signals['time_since_payment'] < 90 and
+        signals['provider_status'] not in ['UNDER_LITIGATION', 'BANKRUPT']):
+        
+        return {
+            'decision': 'AUTO_APPROVED',
+            'confidence': 0.95,
+            'next_level': 'FINANCE_MANAGER',
+            'reasoning': 'Meets all auto-approval criteria',
+            'estimated_recovery_time': '10-15 business days',
+            'success_probability': signals['recovery_success_probability']
+        }
+    
+    elif signals['fraud_risk_score'] >= 0.70:
+        return {
+            'decision': 'RECOMMEND_APPROVAL',
+            'confidence': 0.75,
+            'next_level': 'FINANCE_MANAGER',
+            'reasoning': 'High fraud risk, requires manager approval',
+            'required_approvals': ['FINANCE_MANAGER']
+        }
+    
+    else:
+        return {
+            'decision': 'RECOMMEND_REJECTION',
+            'confidence': 0.60,
+            'reasoning': 'Insufficient fraud evidence or low success probability',
+            'recommended_action': 'Additional investigation required'
+        }
+```
+
+**Multi-Level Approval Chain:**
+
+```
+Recovery Request
+    ↓
+Level 1: Recovery Agent (AI) - Auto-evaluation
+    ↓ (if approved)
+Level 2: Finance Manager - Business validation
+    ↓ (if amount > $100K)
+Level 3: Legal Team - Compliance review
+    ↓
+Execution: Banking system integration
+```
+
+**Outputs:**
+- Recovery case ID
+- Approval status (AUTO_APPROVED, PENDING, REJECTED)
+- Required approval levels
+- Estimated recovery timeframe
+- Success probability prediction
+- Detailed audit trail
+
+**Recovery Methods:**
+
+1. **Bank Reversal** (Fastest: 5-10 days)
+   - Direct ACH reversal for recent payments
+   - Requires banking API integration
+   - Success rate: 85%
+
+2. **Provider Agreement** (Medium: 15-30 days)
+   - Negotiated repayment plan
+   - Voluntary provider cooperation
+   - Success rate: 60%
+
+3. **Legal Action** (Slowest: 90-180 days)
+   - Formal legal proceedings
+   - For contested or large amounts
+   - Success rate: 40%
+
+**Performance Metrics:**
+- Average recovery time: 12 business days
+- Recovery success rate: 78%
+- Auto-approval accuracy: 92%
+- False positive recoveries: < 3%
+
+**Integration with Fraud Detection:**
+- Receives updated risk scores via MCP when providers are re-evaluated
+- Accesses SHAP explanations and investigation reports
+- Triggers automatic re-analysis if recovery fails (potential false positive)
+
+---
+
+### Cross-Application Agent Collaboration
+
+The Finance Application agents work seamlessly with Fraud Detection agents through the MCP protocol:
+
+```mermaid
+sequenceDiagram
+    participant Monitor as Monitor Agent<br/>(Fraud App)
+    participant Analyst as Analyst Agent<br/>(Fraud App)
+    participant MCP as MCP Server<br/>(Finance App)
+    participant PayClass as Payment Classifier<br/>(Finance App)
+    participant Recovery as Recovery Agent<br/>(Finance App)
+    
+    Monitor->>Analyst: Scan provider NPI 1003000142
+    Analyst->>Analyst: Calculate risk = 0.88
+    Analyst->>MCP: hold_payment(npi, risk, reason)
+    
+    MCP->>PayClass: Classify pending transactions
+    PayClass->>PayClass: Composite risk = 0.91
+    PayClass->>MCP: HOLD decision (3 transactions)
+    MCP-->>Analyst: Success (3 transactions held)
+    
+    Note over PayClass,Recovery: 30 days later...
+    
+    Recovery->>Recovery: Find processed payment ($45K)
+    Recovery->>MCP: get_updated_risk(npi)
+    MCP->>Analyst: Re-evaluate provider
+    Analyst-->>MCP: Updated risk = 0.89
+    MCP-->>Recovery: Confirmed high risk
+    
+    Recovery->>Recovery: Auto-approve recovery
+    Recovery->>Recovery: Execute bank reversal
+    Recovery->>MCP: Recovery successful ($45K)
+```
+
+**Data Flow:**
+1. **Fraud Detection → Finance**: Risk scores, payment hold commands, provider flags
+2. **Finance → Fraud Detection**: Recovery confirmations, payment status updates, false positive reports
+
+**Shared State:**
+- Provider risk classifications synchronized
+- Payment hold status bi-directionally updated
+- Audit logs aggregated across both systems
+
+---
+
 ## 8. Common Use Cases
 
 This section provides detailed walkthroughs of real-world scenarios you'll encounter when using the FraudGuard system.
