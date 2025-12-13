@@ -68,7 +68,9 @@ async def _run_agentic_analysis(provider_id: str, provider_data: pd.Series, ml_a
             trace.append("✅ **Check**: No immediate red flags found by Investigator.")
             
         trace.append(f"🤔 **Think**: Analyst calculating risk score and SHAP values...")
-        trace.append(f"⚡ **Act**: Analyst determined risk level: {analysis_results['risk_level']} (Score: {analysis_results['final_score']:.4f})")
+        final_score = analysis_results.get('final_score')
+        score_str = f"{final_score:.4f}" if final_score is not None else "N/A"
+        trace.append(f"⚡ **Act**: Analyst determined risk level: {analysis_results['risk_level']} (Score: {score_str})")
         trace.append(f"📝 **Report**: Reporter generating final narrative...")
         trace.append(f"👮 **Supervise**: Supervisor recommends: {supervisor_recommendation['recommendation']}")
 
@@ -92,6 +94,96 @@ async def _run_agentic_analysis(provider_id: str, provider_data: pd.Series, ml_a
         
         # Cache the result
         analysis_cache[str(provider_id)] = result
+        
+        #Auto-trigger recovery for high-risk cases
+        try:
+            # Get auto-trigger config
+            from src.utils.config_loader import load_config
+            config = load_config("config.yaml")
+            auto_trigger_cfg = config.get("fraud_detection", {}).get("auto_trigger_recovery", {})
+            
+            if auto_trigger_cfg.get("enabled", False):
+                min_score = auto_trigger_cfg.get("min_fraud_score", 0.75)
+                
+                # Check if fraud score meets threshold
+                if analysis_results['final_score'] >= min_score:
+                    logger.info(f"🤖 Auto-triggering recovery check for NPI {provider_id} (score: {analysis_results['final_score']:.2%})")
+                    
+                    # Import requests here to avoid circular imports
+                    import requests
+                    
+                    # Attempt to trigger payment hold/recovery
+                    try:
+                        fraud_evidence = {
+                            "fraud_score": analysis_results['final_score'],
+                            "reasoning": final_report['final_narrative'][:500],  # Truncate for API
+                            "shap_values": analysis_results['shap_data'][:10],
+                            "investigation": investigation_report['summary'],
+                            "analysis": analysis_results['analysis_text'],
+                            "supervisor_recommendation": supervisor_recommendation['recommendation']
+                        }
+                        
+                        # Call the unified fraud response endpoint (local fraud app endpoint)
+                        response = requests.post(
+                            "http://localhost:8000/api/submit_payment_hold",
+                            json={
+                                "npi": int(provider_id),
+                                "fraud_score": analysis_results['final_score'],
+                                "reasoning": final_report['final_narrative'][:200],
+                                "auto_triggered": True
+                            },
+                            timeout=10
+                        )
+                        
+                        if response.status_code == 200:
+                            response_data = response.json()
+                            action = response_data.get("action", "UNKNOWN")
+                            
+                            if action == "RECOVERY_INITIATED":
+                                logger.info(f"✅ Auto-recovery initiated for NPI {provider_id}: {response_data.get('recovery_id')}")
+                                result['auto_recovery_initiated'] = True
+                                result['recovery_id'] = response_data.get('recovery_id')
+                                result['approval_level'] = response_data.get('approval_level')
+                            elif action == "PAYMENT_HELD":
+                                logger.info(f"✅ Auto-hold successful for NPI {provider_id}")
+                                result['auto_hold_successful'] = True
+                            else:
+                                logger.warning(f"⚠️ Unexpected response from Finance: {action}")
+                        else:
+                            logger.warning(f"⚠️ Finance API returned {response.status_code}: {response.text}")
+                            
+                    except requests.exceptions.ConnectionError:
+                        logger.warning("⚠️ Finance system not available for auto-trigger")
+                    except Exception as e:
+                        logger.error(f"❌ Auto-trigger failed: {e}")
+                else:
+                    logger.info(f"ℹ️ Score {analysis_results['final_score']:.2%} below auto-trigger threshold ({min_score:.0%})")
+                    
+        except Exception as e:
+            logger.error(f"Error in auto-trigger logic: {e}")
+            # Don't fail the main analysis if auto-trigger fails
+        
+        # Query Finance app for existing actions on this provider
+        try:
+            import requests
+            finance_response = requests.get(
+                f"http://localhost:8001/api/provider/actions/{provider_id}",
+                timeout=3
+            )
+            if finance_response.status_code == 200:
+                finance_actions = finance_response.json()
+                result['finance_actions'] = {
+                    'has_actions': finance_actions['total_actions'] > 0,
+                    'payment_holds': finance_actions.get('payment_holds', []),
+                    'recovery_requests': finance_actions.get('recovery_requests', []),
+                    'total_actions': finance_actions['total_actions']
+                }
+            else:
+                result['finance_actions'] = {'has_actions': False, 'error': 'Unable to fetch'}
+        except Exception as e:
+            logger.warning(f"Could not fetch finance actions: {e}")
+            result['finance_actions'] = {'has_actions': False, 'error': str(e)}
+        
         return result
 
     except Exception as e:
@@ -300,6 +392,93 @@ async def stream_agentic_analysis(provider_id: str, provider_data: pd.Series, ml
         
         # Cache the result
         analysis_cache[str(provider_id)] = result
+        
+        # Auto-trigger recovery for high-risk cases (same logic as non-streaming endpoint)
+        try:
+            from src.utils.config_loader import load_config
+            config = load_config("config.yaml")
+            auto_trigger_cfg = config.get("fraud_detection", {}).get("auto_trigger_recovery", {})
+            
+            if auto_trigger_cfg.get("enabled", False):
+                min_score = auto_trigger_cfg.get("min_fraud_score", 0.75)
+                
+                if analysis_results['final_score'] >= min_score:
+                    logger.info(f"🤖 Auto-triggering fraud response for NPI {provider_id} (score: {analysis_results['final_score']:.2%})")
+                    
+                    import requests
+                    
+                    try:
+                        fraud_evidence = {
+                            "fraud_score": analysis_results['final_score'],
+                            "reasoning": final_report['final_narrative'][:500],
+                            "shap_values": analysis_results['shap_data'][:10],
+                            "investigation": investigation_report['summary'],
+                            "analysis": analysis_results['analysis_text'],
+                            "supervisor_recommendation": supervisor_recommendation['recommendation']
+                        }
+                        
+                        # Call unified fraud response endpoint (local fraud app endpoint)
+                        response = requests.post(
+                            "http://localhost:8000/api/submit_payment_hold",
+                            json={
+                                "npi": int(provider_id),
+                                "fraud_score": analysis_results['final_score'],
+                                "reasoning": final_report['final_narrative'][:200],
+                                "auto_triggered": True
+                            },
+                            timeout=10
+                        )
+                        
+                        if response.status_code == 200:
+                            response_data = response.json()
+                            action = response_data.get("action", "UNKNOWN")
+                            
+                            if action == "RECOVERY_INITIATED":
+                                logger.info(f"✅ Auto-recovery initiated for NPI {provider_id}: {response_data.get('recovery_id')}")
+                                result['auto_recovery_initiated'] = True
+                                result['recovery_id'] = response_data.get('recovery_id')
+                                result['approval_level'] = response_data.get('approval_level')
+                                trace.append(f"💰 **Auto-Recovery**: Initiated recovery {response_data.get('recovery_id')}")
+                            elif action == "PAYMENT_HELD":
+                                logger.info(f"✅ Auto-hold successful for NPI {provider_id}")
+                                result['auto_hold_successful'] = True
+                                trace.append(f"⏸️ **Auto-Hold**: Payment held successfully")
+                            else:
+                                logger.warning(f"⚠️ Unexpected finance response: {action}")
+                        else:
+                            logger.warning(f"⚠️ Finance API returned {response.status_code}: {response.text}")
+                            
+                    except requests.exceptions.ConnectionError:
+                        logger.warning("⚠️ Finance system not available for auto-trigger")
+                    except Exception as e:
+                        logger.error(f"❌ Auto-trigger failed: {e}")
+                else:
+                    logger.info(f"ℹ️ Score {analysis_results['final_score']:.2%} below auto-trigger threshold ({min_score:.0%})")
+                    
+        except Exception as e:
+            logger.error(f"Error in auto-trigger logic: {e}")
+            # Don't fail analysis if auto-trigger fails
+        
+        # Query Finance app for existing actions on this provider
+        try:
+            import requests
+            finance_response = requests.get(
+                f"http://localhost:8001/api/provider/actions/{provider_id}",
+                timeout=3
+            )
+            if finance_response.status_code == 200:
+                finance_actions = finance_response.json()
+                result['finance_actions'] = {
+                    'has_actions': finance_actions['total_actions'] > 0,
+                    'payment_holds': finance_actions.get('payment_holds', []),
+                    'recovery_requests': finance_actions.get('recovery_requests', []),
+                    'total_actions': finance_actions['total_actions']
+                }
+            else:
+                result['finance_actions'] = {'has_actions': False, 'error': 'Unable to fetch'}
+        except Exception as e:
+            logger.warning(f"Could not fetch finance actions: {e}")
+            result['finance_actions'] = {'has_actions': False, 'error': str(e)}
         
         # Yield final result
         yield json.dumps({"type": "result", "data": result}) + "\n"

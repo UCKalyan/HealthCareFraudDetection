@@ -547,6 +547,11 @@
                                     John Doe</h1>
                                 <span id="reportSpecialty"
                                     class="px-3 py-1 bg-slate-100 text-slate-600 text-xs font-bold uppercase tracking-wide rounded-full">Cardiology</span>
+                                <!-- Finance Action Status Badge -->
+                                <span id="financeStatusBadge"
+                                    class="hidden px-3 py-1 bg-purple-100 text-purple-700 text-xs font-bold rounded-full animate-pulse">
+                                    💰 <span id="financeStatusText">Action Taken</span>
+                                </span>
                             </div>
                             <p id="reportProviderNpi" class="mt-1 text-slate-500 font-mono">NPI: 1234567890</p>
                         </div>
@@ -599,6 +604,24 @@
                             </div>
                             <div id="supervisorRecommendation"
                                 class="text-sm text-slate-800 font-medium leading-relaxed">
+                                <!-- Content populated by JS -->
+                            </div>
+                        </div>
+
+                        <!-- Finance Action Status (Expandable Details) -->
+                        <div id="financeActionSection"
+                            class="hidden bg-gradient-to-r from-purple-50 to-indigo-50 p-5 rounded-xl mb-6 border-2 border-purple-200 shadow-sm">
+                            <div class="flex items-center justify-between mb-3 cursor-pointer"
+                                onclick="toggleFinanceDetails()">
+                                <h3 class="font-bold text-purple-900 flex items-center gap-2">
+                                    <span>💰</span> Finance Action Status
+                                    <span class="text-xs font-normal text-purple-600" id="financeActionCount"></span>
+                                </h3>
+                                <button class="text-purple-600 hover:text-purple-800 transition-colors">
+                                    <span id="financeToggleIcon">▼</span>
+                                </button>
+                            </div>
+                            <div id="financeActionDetails" class="space-y-3 mt-4">
                                 <!-- Content populated by JS -->
                             </div>
                         </div>
@@ -1230,6 +1253,15 @@
                 // Load Network Graph
                 if (window.loadNetworkGraph) {
                     window.loadNetworkGraph(data.npi);
+                }
+
+                // Display Finance Action Status
+                console.log('DEBUG: finance_actions data:', data.finance_actions);
+                if (data.finance_actions && data.finance_actions.has_actions) {
+                    console.log('DEBUG: Calling displayFinanceStatus with', data.finance_actions.total_actions, 'actions');
+                    displayFinanceStatus(data.finance_actions);
+                } else {
+                    console.log('DEBUG: No finance actions to display. has_actions:', data.finance_actions?.has_actions);
                 }
 
                 document.getElementById('reportBaseValue').textContent = data.baseValue.toFixed(3);
@@ -2054,6 +2086,104 @@
             setInterval(fetchDashboardStats, 30000);
 
             showView('dashboard');
+
+            // --- Finance Action Status Display Functions ---
+            window.displayFinanceStatus = function (financeActions) {
+                const badge = document.getElementById('financeStatusBadge');
+                const badgeText = document.getElementById('financeStatusText');
+                const section = document.getElementById('financeActionSection');
+                const countSpan = document.getElementById('financeActionCount');
+                const detailsDiv = document.getElementById('financeActionDetails');
+
+                // Show badge
+                badge.classList.remove('hidden');
+                const totalCount = financeActions.total_actions || 0;
+                badgeText.textContent = totalCount === 1 ? 'Action Taken' : `${totalCount} Actions`;
+
+                // Show section
+                section.classList.remove('hidden');
+                countSpan.textContent = `(${totalCount} total)`;
+
+                // Build details HTML
+                let html = '';
+
+                // Display recovery requests
+                if (financeActions.recovery_requests && financeActions.recovery_requests.length > 0) {
+                    financeActions.recovery_requests.forEach(req => {
+                        const statusClass =
+                            req.recovery_status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
+                                req.recovery_status === 'APPROVED' ? 'bg-green-100 text-green-800' :
+                                    'bg-red-100 text-red-800';
+
+                        html += `
+                            <div class="bg-white p-4 rounded-lg border border-purple-100 shadow-sm">
+                                <div class="flex justify-between items-start mb-2">
+                                    <div>
+                                        <div class="font-bold text-purple-900 flex items-center gap-2">
+                                            <span>💰</span> Recovery Request
+                                        </div>
+                                        <div class="text-xs text-gray-600 font-mono mt-1">ID: ${req.recovery_id}</div>
+                                    </div>
+                                    <div class="text-right">
+                                        <span class="px-2 py-1 rounded text-xs font-semibold ${statusClass}">
+                                            ${req.recovery_status}
+                                        </span>
+                                        <div class="text-xs text-gray-500 mt-1">${req.approval_level || 'N/A'}</div>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-2 gap-2 text-sm mt-3">
+                                    <div>
+                                        <span class="text-gray-600">Amount:</span>
+                                        <span class="font-semibold text-purple-900">$${req.recovery_amount ? req.recovery_amount.toFixed(2) : '0.00'}</span>
+                                    </div>
+                                    <div>
+                                        <span class="text-gray-600">Fraud Score:</span>
+                                        <span class="font-semibold text-red-600">${req.fraud_risk_score ? (req.fraud_risk_score * 100).toFixed(1) + '%' : 'N/A'}</span>
+                                    </div>
+                                </div>
+                                ${req.reasoning ? `<div class="text-xs text-gray-700 mt-2 p-2 bg-gray-50 rounded">${req.reasoning.substring(0, 150)}...</div>` : ''}
+                            </div>
+                        `;
+                    });
+                }
+
+                // Display payment holds
+                if (financeActions.payment_holds && financeActions.payment_holds.length > 0) {
+                    financeActions.payment_holds.forEach(hold => {
+                        html += `
+                            <div class="bg-white p-4 rounded-lg border border-yellow-100 shadow-sm">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <div class="font-bold text-yellow-900 flex items-center gap-2">
+                                            <span>⏸️</span> Payment Hold
+                                        </div>
+                                        <div class="text-xs text-gray-600 font-mono mt-1">ID: ${hold.transaction_id || 'N/A'}</div>
+                                    </div>
+                                    <span class="px-2 py-1 rounded text-xs font-semibold bg-yellow-100 text-yellow-800">
+                                        HELD
+                                    </span>
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
+
+                detailsDiv.innerHTML = html || '<div class="text-gray-500 text-sm">No actions available</div>';
+            };
+
+            window.toggleFinanceDetails = function () {
+                const detailsDiv = document.getElementById('financeActionDetails');
+                const icon = document.getElementById('financeToggleIcon');
+
+                if (detailsDiv.classList.contains('hidden')) {
+                    detailsDiv.classList.remove('hidden');
+                    icon.textContent = '▼';
+                } else {
+                    detailsDiv.classList.add('hidden');
+                    icon.textContent = '▶';
+                }
+            };
+
             // --- Feedback Submission ---
             window.submitFeedback = async function (action) {
                 const npi = document.getElementById('reportProviderNpi').innerText.replace('NPI: ', '');

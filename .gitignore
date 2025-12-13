@@ -51,8 +51,10 @@ logs/**
 *.tfrecord
 *.yaml
 *.csv
-*.env
+.env
 *.env.*
+shared-data/raw/**
+shared-data/processed/**
 # Large files
 *.db
 *.dmg

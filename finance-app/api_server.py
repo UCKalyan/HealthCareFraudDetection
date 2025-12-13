@@ -20,6 +20,7 @@ from dotenv import load_dotenv
 from pathlib import Path
 from datetime import datetime
 from typing import Optional
+import uuid
 
 from fastapi import FastAPI, Request, Form, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
@@ -39,12 +40,28 @@ from contextlib import asynccontextmanager
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: Start background thread
+    # Startup: Start background threads
     thread = threading.Thread(target=refresh_dashboard_stats_background, daemon=True)
     thread.start()
     logger.info("🚀 Background stats refresh thread started")
+    
+    # Start daily summary scheduler
+    try:
+        from src.utils.daily_summary import get_scheduler
+        scheduler = get_scheduler(str(DB_PATH))
+        scheduler.start()
+    except Exception as e:
+        logger.error(f"Failed to start daily summary scheduler: {e}")
+    
     yield
-    # Shutdown: Clean up resources if needed
+    # Shutdown: Clean up resources
+    try:
+        from src.utils.daily_summary import get_scheduler
+        scheduler = get_scheduler()
+        if scheduler:
+            scheduler.stop()
+    except:
+        pass
     logger.info("🛑 Server shutting down")
 
 # Initialize FastAPI with lifespan
@@ -859,19 +876,40 @@ async def initiate_recovery(data: dict):
 
 
 @app.get("/api/recovery/requests")
-async def get_recovery_requests(status: Optional[str] = None, npi: Optional[int] = None, limit: int = 100):
-    """Get recovery requests with optional filters"""
+async def get_recovery_requests(request:Request, status: str = None):
+    """Get all recovery requests with optional status filter"""
+    user = get_session_user(request)
+    if not user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
     
     try:
-        from src.services import RecoveryService
-        
+        from src.services.recovery_service import RecoveryService
         recovery_service = RecoveryService(str(DB_PATH))
-        requests = recovery_service.get_recovery_requests(status=status, npi=npi, limit=limit)
-        
-        return {"recovery_requests": requests, "count": len(requests)}
-        
+        requests_list = recovery_service.get_recovery_requests(status=status)
+        return {"recovery_requests": requests_list}
     except Exception as e:
         logger.error(f"Error fetching recovery requests: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/recovery/details/{recovery_id}")
+async def get_recovery_details(request: Request, recovery_id: str):
+    """Get detailed recovery workflow information including timeline and email status"""
+    user = get_session_user(request)
+    if not user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    
+    try:
+        from src.services.recovery_workflow import get_recovery_workflow_details
+        details = get_recovery_workflow_details(str(DB_PATH), recovery_id)
+        
+        if 'error' in details:
+            raise HTTPException(status_code=404, detail=details['error'])
+        
+        return details
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching recovery details: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -931,6 +969,18 @@ async def reject_recovery(recovery_id: str, data: dict):
         
     except Exception as e:
         logger.error(f"Error rejecting recovery: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/provider/actions/{npi}")
+async def get_provider_actions(npi: int):
+    """Get all payment holds and recovery requests for a provider"""
+    try:
+        from src.services.provider_actions import get_provider_finance_actions
+        actions = get_provider_finance_actions(str(DB_PATH), npi)
+        return actions
+    except Exception as e:
+        logger.error(f"Error fetching provider actions: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
