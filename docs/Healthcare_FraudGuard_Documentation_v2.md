@@ -595,6 +595,7 @@ graph TB
         EXT1[Medicare Part D<br/>Prescriber Data]
         EXT2[Medicare Part B<br/>Physician Data]
         EXT3[LEIE<br/>Excluded Providers]
+        EXT4[NPPES<br/>Provider Registry]
     end
     
     UI1 -->|HTTP/REST| APP1
@@ -605,7 +606,7 @@ graph TB
     ML1 & ML2 --> DB1
     APP1 --> DB1 & DB2 & DB3
     APP2 --> DB4
-    EXT1 & EXT2 & EXT3 -.->|CSV Import| DB1 & DB4
+    EXT1 & EXT2 & EXT3 & EXT4 -.->|CSV Import| DB1 & DB4
     
     style UI1 fill:#3b82f6,color:#fff
     style UI2 fill:#10b981,color:#fff
@@ -926,7 +927,7 @@ erDiagram
 
 ### 5.1 Input Data Source Relationships
 
-The system ingests three primary Medicare datasets. These datasets are related via the **National Provider Identifier (NPI)**, which serves as the primary key for entity resolution.
+The system ingests four primary Medicare datasets. These datasets are related via the **National Provider Identifier (NPI)**, which serves as the primary key for entity resolution.
 
 ```mermaid
 erDiagram
@@ -952,9 +953,22 @@ erDiagram
         string REASON "Fraud Reason"
     }
 
+    NPPES_PROVIDER_REGISTRY {
+        int NPI PK "Provider ID"
+        string Provider_Org_Name "Legal Business Name"
+        string Business_Address "Mailing Address"
+        string City
+        string State
+        string Zip
+        string Taxonomy_Code "Provider Type"
+        date Enumeration_Date "NPI Registration Date"
+    }
+
     MEDICARE_PART_B_PHYSICIAN ||--|| MEDICARE_PART_D_PRESCRIBER : "Matches on NPI"
     MEDICARE_PART_B_PHYSICIAN ||--o| LEIE_EXCLUSION_LIST : "Matches on NPI (Label=Fraud)"
     MEDICARE_PART_D_PRESCRIBER ||--o| LEIE_EXCLUSION_LIST : "Matches on NPI (Label=Fraud)"
+    MEDICARE_PART_B_PHYSICIAN ||--|| NPPES_PROVIDER_REGISTRY : "Enriched with provider details"
+    MEDICARE_PART_D_PRESCRIBER ||--|| NPPES_PROVIDER_REGISTRY : "Enriched with provider details"
 ```
 
 ### 5.2 End-to-End Data Flow
@@ -967,6 +981,7 @@ flowchart TB
         CSV1[Medicare Part D CSV]
         CSV2[Medicare Part B CSV]
         CSV3[LEIE Exclusion List]
+        CSV4[NPPES Provider Registry]
         LOAD[Data Loader]
     end
     
@@ -997,8 +1012,8 @@ flowchart TB
         REPORT[Generate Report]
     end
     
-    START --> CSV1 & CSV2 & CSV3
-    CSV1 & CSV2 & CSV3 --> LOAD
+    START --> CSV1 & CSV2 & CSV3 & CSV4
+    CSV1 & CSV2 & CSV3 & CSV4 --> LOAD
     LOAD --> CLEAN
     CLEAN --> MERGE
     MERGE --> FEAT1
