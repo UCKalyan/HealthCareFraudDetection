@@ -1,0 +1,458 @@
+<!-- Tiered Payment Hold System with 60-second Countdown -->
+<!-- Add this to investigation_report.html after the report results -->
+
+<script>
+    // State management for payment hold
+    let holdCountdownTimer = null;
+    let holdCountdownSeconds = 60;
+
+    function initializePaymentHold() {
+        const fraudScore = {{ finalScore }
+    };
+    const npi = '{{ npi }}';
+
+    if (fraudScore >= 0.95) {
+        // CRITICAL: Auto-hold with 60-second cancellation window
+        showCriticalAutoHold(npi, fraudScore);
+    } else if (fraudScore >= 0.70) {
+        // HIGH: Manual approval required
+        showManualHoldButton(npi, fraudScore);
+    } else if (fraudScore >= 0.50) {
+        // MEDIUM: Monitoring alert
+        showMonitoringAlert(npi, fraudScore);
+    } else {
+        // LOW: No action needed
+        console.log(`Low risk provider (${fraudScore.toFixed(4)}) - no action required`);
+    }
+}
+
+    function showCriticalAutoHold(npi, fraudScore) {
+        const container = document.getElementById('payment-hold-container');
+
+        container.innerHTML = `
+        <div class="bg-red-100 border-l-4 border-red-600 p-6 rounded-lg shadow-lg animate-pulse">
+            <div class="flex items-center justify-between">
+                <div class="flex-1">
+                    <h3 class="text-2xl font-bold text-red-900 flex items-center">
+                        <span class="mr-2">🚨</span> CRITICAL FRAUD RISK DETECTED!
+                    </h3>
+                    <p class="text-red-800 mt-2 text-lg">
+                        Fraud Score: <span class="font-mono font-bold">${(fraudScore * 100).toFixed(2)}%</span> (≥95% threshold)
+                    </p>
+                    <p class="text-red-700 mt-2">
+                        <strong>Automatic payment hold</strong> will be enforced in:
+                    </p>
+                    <div class="mt-3 p-4 bg-red-200 rounded-lg">
+                        <p class="text-red-900 text-3xl font-bold text-center" id="countdown-display">
+                            60 seconds
+                        </p>
+                        <p class="text-red-800 text-sm text-center mt-1">
+                            Click Cancel if you want to override this decision
+                        </p>
+                    </div>
+                </div>
+                <button 
+                    onclick="cancelAutoHold()"
+                    id="cancel-hold-btn"
+                    class="ml-4 px-6 py-3 bg-white text-red-600 border-2 border-red-600 rounded-lg hover:bg-red-50 font-semibold transition-all transform hover:scale-105 shadow-lg">
+                    ✋ Cancel Auto-Hold
+                </button>
+            </div>
+            <div id="hold-progress" class="mt-4"></div>
+        </div>
+    `;
+
+        // Start countdown
+        startCountdown(npi, fraudScore);
+    }
+
+    function startCountdown(npi, fraudScore) {
+        holdCountdownSeconds = 60;
+        updateCountdownDisplay();
+
+        holdCountdownTimer = setInterval(() => {
+            holdCountdownSeconds--;
+            updateCountdownDisplay();
+
+            if (holdCountdownSeconds <= 0) {
+                clearInterval(holdCountdownTimer);
+                executeAutoHold(npi, fraudScore);
+            }
+        }, 1000);
+    }
+
+    function updateCountdownDisplay() {
+        const display = document.getElementById('countdown-display');
+        if (display) {
+            display.innerHTML = `${holdCountdownSeconds} second${holdCountdownSeconds !== 1 ? 's' : ''}`;
+
+            // Change color as time runs out
+            if (holdCountdownSeconds <= 10) {
+                display.classList.add('text-red-900', 'animate-bounce');
+            }
+        }
+    }
+
+    function cancelAutoHold() {
+        clearInterval(holdCountdownTimer);
+
+        const container = document.getElementById('payment-hold-container');
+        container.innerHTML = `
+        <div class="bg-yellow-50 border-l-4 border-yellow-500 p-6 rounded-lg shadow">
+            <h3 class="text-xl font-bold text-yellow-900 flex items-center">
+                <span class="mr-2">⚠️</span> Auto-Hold Cancelled
+            </h3>
+            <p class="text-yellow-800 mt-2">
+                Automatic payment hold has been cancelled by analyst override.
+            </p>
+            <p class="text-yellow-700 mt-2 text-sm">
+                Provider NPI {{ npi }} will continue to be monitored. 
+                Payment processing will proceed normally.
+            </p>
+            <div class="mt-4">
+                <button 
+                    onclick="location.reload()"
+                    class="px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700">
+                    Refresh Analysis
+                </button>
+            </div>
+        </div>
+    `;
+
+        showToastNotification('Auto-hold cancelled', 'warning');
+    }
+
+    async function executeAutoHold(npi, fraudScore) {
+        const progressDiv = document.getElementById('hold-progress');
+        progressDiv.innerHTML = `
+        <div class="bg-red-200 p-4 rounded mt-2">
+            <p class="text-red-900 font-semibold flex items-center">
+                <span class="animate-spin mr-2">⏳</span>
+                Executing automatic fraud response via MCP...
+            </p>
+        </div>
+    `;
+
+        try {
+            const response = await fetch('/api/submit_payment_hold', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    npi: npi,
+                    fraud_score: fraudScore,
+                    reasoning: `AUTOMATIC HOLD: Critical fraud score ${(fraudScore * 100).toFixed(2)}% (≥95% threshold). Hold enforced automatically after 60-second review period.`,
+                    auto_triggered: true
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                const container = document.getElementById('payment-hold-container');
+
+                // Check if this was a recovery initiation or payment hold
+                if (result.action === 'RECOVERY_INITIATED') {
+                    container.innerHTML = `
+                    <div class="bg-purple-50 border-l-4 border-purple-600 p-6 rounded-lg shadow-lg">
+                        <h3 class="text-2xl font-bold text-purple-900 flex items-center">
+                            <span class="mr-2">💰</span> Payment Recovery Process Initiated
+                        </h3>
+                        <p class="text-purple-800 mt-2">
+                            Payment for NPI <span class="font-mono font-bold">${npi}</span> was already processed in 2023.
+                        </p>
+                        <p class="text-purple-700 mt-2">
+                            <strong>Recovery workflow automatically initiated</strong> instead of payment hold.
+                        </p>
+                        <div class="mt-3 p-3 bg-purple-100 rounded">
+                            <p class="text-purple-900 font-semibold">Recovery Details:</p>
+                            <p class="text-purple-800 text-sm mt-1">
+                                Recovery ID: <code class="bg-purple-200 px-2 py-1 rounded">${result.recovery_id}</code>
+                            </p>
+                            <p class="text-purple-800 text-sm mt-1">
+                                Amount: ${result.amount}
+                            </p>
+                            <p class="text-purple-800 text-sm mt-1">
+                                Approval Level: <span class="font-bold">${result.approval_level}</span>
+                            </p>
+                            <p class="text-purple-800 text-sm mt-1">
+                                Fraud Score: ${(fraudScore * 100).toFixed(2)}%
+                            </p>
+                        </div>
+                        <div class="mt-4 p-4 bg-blue-50 border border-blue-200 rounded">
+                            <p class="text-blue-900 font-semibold">
+                                ➡️ View Recovery Request
+                            </p>
+                            <p class="text-blue-800 text-sm mt-1">
+                                Open <a href="http://localhost:8001/recovery" target="_blank" class="underline font-semibold">Finance → Recovery</a> to review and approve this recovery request.
+                            </p>
+                        </div>
+                    </div>
+                `;
+                    showToastNotification('Recovery process initiated', 'success');
+
+                } else {
+                    // Standard payment hold
+                    container.innerHTML = `
+                    <div class="bg-green-50 border-l-4 border-green-600 p-6 rounded-lg shadow-lg">
+                        <h3 class="text-2xl font-bold text-green-900 flex items-center">
+                            <span class="mr-2">✅</span> Automatic Payment Hold Enforced
+                        </h3>
+                        <p class="text-green-800 mt-2">
+                            All payments for NPI <span class="font-mono font-bold">${npi}</span> have been automatically held.
+                        </p>
+                        <div class="mt-3 p-3 bg-green-100 rounded">
+                            <p class="text-green-900 font-semibold">Transaction Details:</p>
+                            <p class="text-green-800 text-sm mt-1">
+                                Transaction ID: <code class="bg-green-200 px-2 py-1 rounded">${result.transaction_id}</code>
+                            </p>
+                            <p class="text-green-800 text-sm mt-1">
+                                Fraud Score: ${(fraudScore * 100).toFixed(2)}%
+                            </p>
+                            <p class="text-green-800 text-sm mt-1">
+                                Decision: <span class="font-bold">AUTOMATIC HOLD</span>
+                            </p>
+                        </div>
+                        <div class="mt-4 p-4 bg-blue-50 border border-blue-200 rounded">
+                            <p class="text-blue-900 font-semibold">
+                                ➡️ View in Finance System
+                            </p>
+                            <p class="text-blue-800 text-sm mt-1">
+                                Open <a href="http://localhost:8001/payments" target="_blank" class="underline font-semibold">Finance → Payments</a> to see the hold transaction.
+                            </p>
+                        </div>
+                    </div>
+                `;
+                    showToastNotification('Payment automatically held', 'success');
+                }
+            } else {
+                showError(result.message);
+            }
+        } catch (error) {
+            showError(error.message);
+        }
+    }
+
+    function showManualHoldButton(npi, fraudScore) {
+        const container = document.getElementById('payment-hold-container');
+
+        container.innerHTML = `
+        <div class="bg-orange-50 border-l-4 border-orange-500 p-6 rounded-lg shadow">
+            <div class="flex items-center justify-between">
+                <div class="flex-1">
+                    <h3 class="text-xl font-bold text-orange-900 flex items-center">
+                        <span class="mr-2">⚠️</span> High Fraud Risk Detected
+                    </h3>
+                    <p class="text-orange-800 mt-2">
+                        Fraud Score: <span class="font-mono font-bold">${(fraudScore * 100).toFixed(2)}%</span> (70-94% range)
+                    </p>
+                    <p class="text-orange-700 mt-2">
+                        <strong>Manual review recommended.</strong> Consider holding payments pending investigation.
+                    </p>
+                </div>
+                <button 
+                    onclick="executeManualHold('${npi}', ${fraudScore})"
+                    id="manual-hold-btn"
+                    class="ml-4 px-6 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 font-semibold transition-all transform hover:scale-105 shadow-lg">
+                    🛑 Hold Payments
+                </button>
+            </div>
+            <div id="manual-hold-status" class="mt-4"></div>
+        </div>
+    `;
+
+        showToastNotification('High risk - manual review required', 'warning');
+    }
+
+    async function executeManualHold(npi, fraudScore) {
+        const button = document.getElementById('manual-hold-btn');
+        const statusDiv = document.getElementById('manual-hold-status');
+
+        button.disabled = true;
+        button.innerHTML = '⏳ Processing...';
+
+        statusDiv.innerHTML = `
+        <div class="bg-blue-50 p-4 rounded">
+            <p class="text-blue-700 flex items-center">
+                <span class="animate-spin mr-2">⏳</span>
+                Submitting fraud response request via MCP...
+            </p>
+        </div>
+    `;
+
+        try {
+            const response = await fetch('/api/submit_payment_hold', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    npi: npi,
+                    fraud_score: fraudScore,
+                    reasoning: `MANUAL HOLD: High fraud score ${(fraudScore * 100).toFixed(2)}% detected. Hold requested by fraud analyst after review.`,
+                    auto_triggered: false
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                // Check if this was a recovery initiation or payment hold
+                if (result.action === 'RECOVERY_INITIATED') {
+                    statusDiv.innerHTML = `
+                    <div class="bg-purple-50 p-4 rounded border-l-4 border-purple-500">
+                        <h4 class="font-bold text-purple-900">💰 Recovery Process Initiated</h4>
+                        <p class="text-purple-800 mt-2">Payment was already processed. Recovery workflow initiated instead.</p>
+                        <p class="text-sm text-purple-700 mt-2">
+                            Recovery ID: <code class="bg-purple-200 px-2 py-1 rounded">${result.recovery_id}</code>
+                        </p>
+                        <p class="text-sm text-purple-700 mt-1">
+                            Approval Level: ${result.approval_level}
+                        </p>
+                        <p class="text-sm text-purple-700 mt-1">
+                            ${result.amount}
+                        </p>
+                        <p class="text-sm text-purple-600 mt-2">
+                            <a href="http://localhost:8001/recovery" target="_blank" class="underline">View in Finance → Recovery</a>
+                        </p>
+                    </div>
+                `;
+                    button.innerHTML = '✅ Recovery Initiated';
+                    button.classList.remove('bg-orange-600', 'hover:bg-orange-700');
+                    button.classList.add('bg-purple-600');
+                    showToastNotification('Recovery process initiated', 'success');
+
+                } else {
+                    // Payment hold successful
+                    statusDiv.innerHTML = `
+                    <div class="bg-green-50 p-4 rounded border-l-4 border-green-500">
+                        <h4 class="font-bold text-green-900">✅ Payment Hold Successful!</h4>
+                        <p class="text-green-800 mt-2">${result.message}</p>
+                        <p class="text-sm text-green-700 mt-2">
+                            Transaction ID: <code class="bg-green-200 px-2 py-1 rounded">${result.transaction_id}</code>
+                        </p>
+                    </div>
+                `;
+                    button.innerHTML = '✅ Hold Submitted';
+                    button.classList.remove('bg-orange-600', 'hover:bg-orange-700');
+                    button.classList.add('bg-green-600');
+                    showToastNotification('Payment hold submitted', 'success');
+                }
+            } else {
+                statusDiv.innerHTML = `
+                <div class="bg-red-50 p-4 rounded">
+                    <p class="text-red-700">❌ Error: ${result.message}</p>
+                </div>
+            `;
+                button.disabled = false;
+                button.innerHTML = '🛑 Hold Payments';
+            }
+        } catch (error) {
+            statusDiv.innerHTML = `
+            <div class="bg-red-50 p-4 rounded">
+                <p class="text-red-700">❌ Error: ${error.message}</p>
+            </div>
+        `;
+            button.disabled = false;
+            button.innerHTML = '🛑 Hold Payments';
+        }
+    }
+
+    function showMonitoringAlert(npi, fraudScore) {
+        const container = document.getElementById('payment-hold-container');
+
+        container.innerHTML = `
+        <div class="bg-blue-50 border-l-4 border-blue-500 p-6 rounded-lg shadow">
+            <h3 class="text-lg font-bold text-blue-900 flex items-center">
+                <span class="mr-2">👁️</span> Medium Risk - Monitoring Mode
+            </h3>
+            <p class="text-blue-800 mt-2">
+                Fraud Score: <span class="font-mono font-bold">${(fraudScore * 100).toFixed(2)}%</span> (50-69% range)
+            </p>
+            <p class="text-blue-700 mt-2">
+                This provider will be <strong>monitored</strong> but no immediate action is required.
+                Payment processing will continue normally with enhanced oversight.
+            </p>
+        </div>
+    `;
+
+        showToastNotification('Provider added to monitoring list', 'info');
+    }
+
+    function showError(message) {
+        const container = document.getElementById('payment-hold-container');
+        container.innerHTML = `
+        <div class="bg-red-50 border-l-4 border-red-500 p-6 rounded-lg">
+            <h3 class="text-lg font-bold text-red-900">❌ Error</h3>
+            <p class="text-red-800 mt-2">${message}</p>
+            <p class="text-red-700 text-sm mt-2">
+                Ensure the Finance application is running on port 8001.
+            </p>
+        </div>
+    `;
+    }
+
+    function showToastNotification(message, type) {
+        // Create toast notification
+        const toast = document.createElement('div');
+        const bgColors = {
+            'success': 'bg-green-500',
+            'warning': 'bg-yellow-500',
+            'error': 'bg-red-500',
+            'info': 'bg-blue-500'
+        };
+
+        toast.className = `fixed top-4 right-4 ${bgColors[type]} text-white px-6 py-3 rounded-lg shadow-lg z-50 animate-fade-in`;
+        toast.innerHTML = `
+        <p class="font-semibold">${message}</p>
+    `;
+
+        document.body.appendChild(toast);
+
+        // Auto-remove after 4 seconds
+        setTimeout(() => {
+            toast.classList.add('animate-fade-out');
+            setTimeout(() => toast.remove(), 500);
+        }, 4000);
+    }
+
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', () => {
+        initializePaymentHold();
+    });
+</script>
+
+<!-- Container for payment hold UI -->
+<div id="payment-hold-container" class="mt-6"></div>
+
+<!-- Add CSS animations -->
+<style>
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(-20px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @keyframes fadeOut {
+        from {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        to {
+            opacity: 0;
+            transform: translateY(-20px);
+        }
+    }
+
+    .animate-fade-in {
+        animation: fadeIn 0.3s ease-in;
+    }
+
+    .animate-fade-out {
+        animation: fadeOut 0.3s ease-out;
+    }
+</style>

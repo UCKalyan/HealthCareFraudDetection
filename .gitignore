@@ -37,6 +37,9 @@
 #folders
 
 **/__pycache__/
+**/scripts/
+**/.pytest_cache/
+**/archive/
 **/logs/
 logs/**
 
@@ -48,9 +51,12 @@ logs/**
 *.tfrecord
 *.yaml
 *.csv
-*.env
-
+.env
+*.env.*
+shared-data/raw/**
+shared-data/processed/**
 # Large files
 *.db
 *.dmg
 *.zip
+*.sh

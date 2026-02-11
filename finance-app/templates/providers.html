@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block title %}Provider Explorer - Finance Application{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <h1 class="text-3xl font-bold text-gray-800">Provider Financial Explorer</h1>
+
+    <!-- Search -->
+    <div class="glass rounded-xl p-4 shadow-lg">
+        <div class="flex gap-4">
+            <input type="text" id="searchQuery" placeholder="Search by NPI, name, or state..."
+                class="flex-1 px-4 py-3 border rounded-lg text-lg" onkeyup="if(event.key==='Enter') searchProviders()">
+            <button onclick="searchProviders()" id="searchBtn"
+                class="px-8 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                Search
+            </button>
+        </div>
+    </div>
+
+    <!-- Results -->
+    <div id="results" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+</div>
+
+<script>
+    async function searchProviders() {
+        const query = document.getElementById('searchQuery').value;
+        const results = document.getElementById('results');
+        const searchBtn = document.getElementById('searchBtn');
+
+        // Set loading state
+        const originalBtnText = searchBtn.innerHTML;
+        searchBtn.innerHTML = '🔍 Searching...';
+        searchBtn.disabled = true;
+
+        results.innerHTML = `
+            <div class="col-span-1 md:col-span-2 lg:col-span-3 flex justify-center items-center py-12">
+                <div class="flex flex-col items-center gap-3">
+                    <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-purple-600"></div>
+                    <p class="text-gray-500 font-medium">Searching providers...</p>
+                </div>
+            </div>
+        `;
+
+        try {
+            const response = await fetch(`/api/providers/search?query=${encodeURIComponent(query)}&limit=50`);
+            const data = await response.json();
+
+            if (!data.providers || data.providers.length === 0) {
+                results.innerHTML = `
+                    <div class="col-span-1 md:col-span-2 lg:col-span-3 text-center py-12 text-gray-500">
+                        <p class="text-lg">No providers found matching "${query}"</p>
+                    </div>
+                `;
+            } else {
+                results.innerHTML = data.providers.map(p => `
+                <div class="glass rounded-xl p-6 shadow-lg hover:shadow-xl transition cursor-pointer"
+                     onclick="viewProvider(${p.npi})">
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <h3 class="font-bold text-lg text-gray-800">${p.provider_name || 'Unknown'}</h3>
+                            <p class="text-sm text-gray-500">NPI: ${p.npi}</p>
+                        </div>
+                        ${p.is_high_cost_provider || p.is_opioid_prescriber ? `
+                            <span class="px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-semibold">HIGH RISK</span>
+                        ` : ''}
+                    </div>
+                    
+                    <div class="space-y-2">
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-600">Total Payments:</span>
+                            <span class="font-bold text-gray-800">$${((p.total_payment_all || 0) / 1e6).toFixed(2)}M</span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-600">Monthly Est:</span>
+                            <span class="font-semibold text-gray-700">$${((p.monthly_payment_estimate || 0) / 1000).toFixed(0)}K</span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-600">State:</span>
+                            <span class="font-semibold text-gray-700">${p.provider_state || 'N/A'}</span>
+                        </div>
+                    </div>
+                </div>
+                `).join('');
+            }
+        } catch (error) {
+            console.error('Error searching providers:', error);
+            results.innerHTML = `
+                <div class="col-span-1 md:col-span-2 lg:col-span-3 text-center py-12 text-red-500">
+                    <p>Error searching providers. Please try again.</p>
+                </div>
+            `;
+        } finally {
+            // Restore button state
+            searchBtn.innerHTML = originalBtnText;
+            searchBtn.disabled = false;
+        }
+    }
+
+    function viewProvider(npi) {
+        window.location.href = `/providers/${npi}`;
+    }
+
+    // Auto-search on load if there's a query
+    if (window.location.search) {
+        searchProviders();
+    }
+</script>
+{% endblock %}

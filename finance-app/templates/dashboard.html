@@ -1,0 +1,338 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Finance Application{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex justify-between items-center">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-800">Dashboard</h1>
+            <p class="text-gray-600 mt-1">Real-time payment processing & fraud monitoring</p>
+        </div>
+        <div class="flex items-center space-x-4">
+            <a href="http://localhost:8000/dashboard"
+                class="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1">
+                <span>🛡️</span> Switch to Fraud App
+            </a>
+            <div class="text-sm text-gray-500">
+                <span id="currentTime"></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- KPI Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <!-- Total Providers -->
+        <div class="stat-card rounded-xl p-6 shadow-lg border-purple-500">
+            <div class="flex justify-between items-start">
+                <div>
+                    <p class="text-sm font-medium text-gray-600 mb-1">Total Providers</p>
+                    <p class="text-3xl font-bold text-gray-800" id="totalProviders">-</p>
+                    <p class="text-xs text-gray-500 mt-2">In database</p>
+                </div>
+                <div class="p-3 bg-purple-100 rounded-lg">
+                    <svg class="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z">
+                        </path>
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- Total Payments -->
+        <div class="stat-card rounded-xl p-6 shadow-lg border-green-500">
+            <div class="flex justify-between items-start">
+                <div>
+                    <p class="text-sm font-medium text-gray-600 mb-1">Total Payments</p>
+                    <p class="text-2xl font-bold text-gray-800" id="totalPayments">-</p>
+                    <p class="text-xs text-green-600 mt-2">All-time volume</p>
+                </div>
+                <div class="p-3 bg-green-100 rounded-lg">
+                    <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
+                        </path>
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- Transactions Today -->
+        <div class="stat-card rounded-xl p-6 shadow-lg border-blue-500">
+            <div class="flex justify-between items-start">
+                <div>
+                    <p class="text-sm font-medium text-gray-600 mb-1">Transactions Today</p>
+                    <p class="text-3xl font-bold text-gray-800" id="transactionsToday">-</p>
+                    <p class="text-xs text-blue-600 mt-2">
+                        Autonomous: <span id="autonomousRate">-%</span>
+                    </p>
+                </div>
+                <div class="p-3 bg-blue-100 rounded-lg">
+                    <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- High-Risk Providers -->
+        <div class="stat-card rounded-xl p-6 shadow-lg border-red-500">
+            <div class="flex justify-between items-start">
+                <div>
+                    <p class="text-sm font-medium text-gray-600 mb-1">High-Risk Providers</p>
+                    <p class="text-3xl font-bold text-gray-800" id="highRiskProviders">-</p>
+                    <p class="text-xs text-red-600 mt-2">
+                        Avg Confidence: <span id="avgConfidence">-%</span>
+                    </p>
+                </div>
+                <div class="p-3 bg-red-100 rounded-lg">
+                    <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z">
+                        </path>
+                    </svg>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Payment Distribution -->
+        <div class="glass rounded-xl p-6 shadow-lg">
+            <h3 class="text-lg font-bold text-gray-800 mb-4">Payment Decisions Today</h3>
+            <div class="relative" style="height: 250px;">
+                <canvas id="decisionsChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Payment Trend -->
+        <div class="glass rounded-xl p-6 shadow-lg">
+            <h3 class="text-lg font-bold text-gray-800 mb-4">Agent Confidence Trend</h3>
+            <div class="relative" style="height: 250px;">
+                <canvas id="confidenceChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="glass rounded-xl p-6 shadow-lg">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-bold text-gray-800">Recent Payment Decisions</h3>
+            <a href="/payments" class="text-sm text-purple-600 hover:text-purple-700 font-medium">View All →</a>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="min-w-full">
+                <thead>
+                    <tr class="border-b border-gray-200">
+                        <th class="text-left py-3 px-4 text-sm font-semibold text-gray-600">Transaction ID</th>
+                        <th class="text-left py-3 px-4 text-sm font-semibold text-gray-600">NPI</th>
+                        <th class="text-left py-3 px-4 text-sm font-semibold text-gray-600">Provider</th>
+                        <th class="text-right py-3 px-4 text-sm font-semibold text-gray-600">Amount</th>
+                        <th class="text-center py-3 px-4 text-sm font-semibold text-gray-600">Decision</th>
+                        <th class="text-center py-3 px-4 text-sm font-semibold text-gray-600">Confidence</th>
+                        <th class="text-left py-3 px-4 text-sm font-semibold text-gray-600">Time</th>
+                    </tr>
+                </thead>
+                <tbody id="recentPayments">
+                    <!-- Populated by JavaScript -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay"
+        class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50 transition-opacity duration-300">
+        <div class="bg-white rounded-xl p-8 shadow-2xl flex flex-col items-center">
+            <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-purple-600 mb-4"></div>
+            <h2 class="text-xl font-bold text-gray-800">Loading Dashboard Data...</h2>
+            <p class="text-gray-500 mt-2">Processing millions of transactions</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Update current time
+    function updateTime() {
+        const now = new Date();
+        document.getElementById('currentTime').textContent = now.toLocaleString();
+    }
+    updateTime();
+    setInterval(updateTime, 1000);
+
+    // Fetch dashboard stats
+    async function loadDashboardStats() {
+        try {
+            const response = await fetch('/api/dashboard/stats');
+            const data = await response.json();
+
+            // Update KPI cards
+            document.getElementById('totalProviders').textContent = data.total_providers.toLocaleString();
+            document.getElementById('totalPayments').textContent = '$' + (data.total_payments / 1e9).toFixed(2) + 'B';
+            document.getElementById('transactionsToday').textContent = data.transactions_today.toLocaleString();
+            document.getElementById('highRiskProviders').textContent = data.high_risk_providers.toLocaleString();
+            document.getElementById('autonomousRate').textContent = data.autonomous_rate.toFixed(1) + '%';
+            document.getElementById('avgConfidence').textContent = (data.average_confidence * 100).toFixed(1) + '%';
+
+            // Create decisions chart
+            createDecisionsChart(data.decisions_today);
+
+            // Create confidence chart
+            createConfidenceChart(data.average_confidence);
+
+        } catch (error) {
+            console.error('Error loading dashboard stats:', error);
+        }
+    }
+
+    // Fetch recent payments
+    async function loadRecentPayments() {
+        try {
+            const response = await fetch('/api/payments/recent?limit=10');
+            const data = await response.json();
+
+            const tbody = document.getElementById('recentPayments');
+            tbody.innerHTML = data.payments.map(payment => {
+                const decisionColor = {
+                    'APPROVE': 'bg-green-100 text-green-800',
+                    'HOLD': 'bg-yellow-100 text-yellow-800',
+                    'REJECT': 'bg-red-100 text-red-800',
+                    'PENDING': 'bg-blue-100 text-blue-800'
+                }[payment.agent_decision] || 'bg-gray-100 text-gray-800';
+
+                const confidencePercent = ((payment.agent_confidence || 0) * 100).toFixed(0);
+                const confidenceColor = confidencePercent >= 80 ? 'text-green-600' : confidencePercent >= 60 ? 'text-yellow-600' : 'text-red-600';
+
+                return `
+                <tr class="border-b border-gray-100 hover:bg-gray-50">
+                    <td class="py-3 px-4 text-sm font-mono text-gray-700">${payment.transaction_id?.substring(0, 20) || 'N/A'}...</td>
+                    <td class="py-3 px-4 text-sm text-gray-700">${payment.npi}</td>
+                    <td class="py-3 px-4 text-sm text-gray-700">${payment.provider_name || 'Unknown'}</td>
+                    <td class="py-3 px-4 text-sm text-right font-semibold text-gray-800">$${(payment.payment_amount || 0).toLocaleString()}</td>
+                    <td class="py-3 px-4 text-center">
+                        <span class="px-3 py-1 rounded-full text-xs font-semibold ${decisionColor}">
+                            ${payment.agent_decision || payment.payment_status || 'PENDING'}
+                        </span>
+                    </td>
+                    <td class="py-3 px-4 text-center">
+                        <span class="font-semibold ${confidenceColor}">${confidencePercent}%</span>
+                    </td>
+                    <td class="py-3 px-4 text-sm text-gray-600">${new Date(payment.created_at).toLocaleTimeString()}</td>
+                </tr>
+            `;
+            }).join('');
+
+        } catch (error) {
+            console.error('Error loading recent payments:', error);
+        }
+    }
+
+    // Create decisions donut chart
+    function createDecisionsChart(decisions) {
+        const ctx = document.getElementById('decisionsChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: Object.keys(decisions),
+                datasets: [{
+                    data: Object.values(decisions),
+                    backgroundColor: [
+                        'rgba(34, 197, 94, 0.8)',   // Green - APPROVE
+                        'rgba(234, 179, 8, 0.8)',   // Yellow - HOLD
+                        'rgba(239, 68, 68, 0.8)',   // Red - REJECT
+                        'rgba(59, 130, 246, 0.8)'   // Blue - PENDING
+                    ],
+                    borderWidth: 2,
+                    borderColor: '#fff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+    }
+
+    // Create confidence line chart
+    function createConfidenceChart(avgConfidence) {
+        const ctx = document.getElementById('confidenceChart').getContext('2d');
+
+        // Generate mock trend data (in production, this would come from API)
+        const labels = ['6h ago', '5h ago', '4h ago', '3h ago', '2h ago', '1h ago', 'Now'];
+        const data = labels.map(() => 0.7 + Math.random() * 0.25);
+        data[data.length - 1] = avgConfidence;
+
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Agent Confidence',
+                    data: data,
+                    borderColor: 'rgb(147, 51, 234)',
+                    backgroundColor: 'rgba(147, 51, 234, 0.1)',
+                    fill: true,
+                    tension: 0.4,
+                    borderWidth: 3
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 1,
+                        ticks: {
+                            callback: function (value) {
+                                return (value * 100).toFixed(0) + '%';
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
+    }
+
+    // Load data on page load
+    document.addEventListener('DOMContentLoaded', async () => {
+        const overlay = document.getElementById('loadingOverlay');
+
+        // Initial load with spinner
+        try {
+            await Promise.all([
+                loadDashboardStats(),
+                loadRecentPayments()
+            ]);
+        } finally {
+            // Hide overlay with fade out
+            overlay.classList.add('opacity-0');
+            setTimeout(() => {
+                overlay.style.display = 'none';
+            }, 300);
+        }
+
+        // Refresh every 5 minutes (background update, no spinner)
+        setInterval(() => {
+            loadDashboardStats();
+            loadRecentPayments();
+        }, 300000);
+    });
+</script>
+{% endblock %}

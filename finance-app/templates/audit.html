@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block title %}Agent Audit Trail - Finance Application{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <h1 class="text-3xl font-bold text-gray-800">Agent Decision Audit Trail</h1>
+
+    <!-- Stats Row -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="glass rounded-lg p-4 text-center">
+            <p class="text-2xl font-bold text-purple-600" id="totalDecisions">-</p>
+            <p class="text-sm text-gray-600">Total Decisions</p>
+        </div>
+        <div class="glass rounded-lg p-4 text-center">
+            <p class="text-2xl font-bold text-green-600" id="approvedCount">-</p>
+            <p class="text-sm text-gray-600">Approved</p>
+        </div>
+        <div class="glass rounded-lg p-4 text-center">
+            <p class="text-2xl font-bold text-yellow-600" id="heldCount">-</p>
+            <p class="text-sm text-gray-600">Held</p>
+        </div>
+        <div class="glass rounded-lg p-4 text-center">
+            <p class="text-2xl font-bold text-red-600" id="rejectedCount">-</p>
+            <p class="text-sm text-gray-600">Rejected</p>
+        </div>
+    </div>
+
+    <!-- Audit Log Table -->
+    <div class="glass rounded-xl p-6 shadow-lg">
+        <h3 class="text-lg font-bold mb-4">Decision Logs</h3>
+        <div class="overflow-x-auto">
+            <table class="min-w-full text-sm">
+                <thead>
+                    <tr class="border-b">
+                        <th class="text-left py-2 px-3">Log ID</th>
+                        <th class="text-left py-2 px-3">Transaction</th>
+                        <th class="text-left py-2 px-3">Agent</th>
+                        <th class="text-center py-2 px-3">Decision</th>
+                        <th class="text-center py-2 px-3">Confidence</th>
+                        <th class="text-left py-2 px-3">Reasoning</th>
+                        <th class="text-left py-2 px-3">Timestamp</th>
+                    </tr>
+                </thead>
+                <tbody id="auditTable"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    async function loadAudit() {
+        const response = await fetch('/api/audit/decisions?limit=100');
+        const data = await response.json();
+
+        // Update stats
+        const decisions = data.decisions;
+        document.getElementById('totalDecisions').textContent = decisions.length;
+        document.getElementById('approvedCount').textContent = decisions.filter(d => d.decision === 'APPROVE').length;
+        document.getElementById('heldCount').textContent = decisions.filter(d => d.decision === 'HOLD').length;
+        document.getElementById('rejectedCount').textContent = decisions.filter(d => d.decision === 'REJECT').length;
+
+        // Populate table
+        const tbody = document.getElementById('auditTable');
+        tbody.innerHTML = decisions.map(d => `
+        <tr class="border-b hover:bg-gray-50">
+            <td class="py-2 px-3 font-mono text-xs">${d.log_id}</td>
+            <td class="py-2 px-3 font-mono text-xs">${d.transaction_id?.substring(0, 20)}...</td>
+            <td class="py-2 px-3 font-semibold">${d.agent_name}</td>
+            <td class="py-2 px-3 text-center">
+                <span class="px-2 py-1 rounded text-xs font-semibold ${d.decision === 'APPROVE' ? 'bg-green-100 text-green-800' :
+                d.decision === 'HOLD' ? 'bg-yellow-100 text-yellow-800' :
+                    'bg-red-100 text-red-800'
+            }">
+                    ${d.decision}
+                </span>
+            </td>
+            <td class="py-2 px-3 text-center font-semibold">${((d.confidence || 0) * 100).toFixed(0)}%</td>
+            <td class="py-2 px-3 text-xs text-gray-600 max-w-xs truncate">${d.reasoning || 'N/A'}</td>
+            <td class="py-2 px-3 text-xs text-gray-500">${new Date(d.created_at).toLocaleString()}</td>
+        </tr>
+    `).join('');
+    }
+
+    loadAudit();
+    setInterval(loadAudit, 30000);
+</script>
+{% endblock %}

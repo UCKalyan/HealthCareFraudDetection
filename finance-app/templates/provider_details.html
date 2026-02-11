@@ -1,0 +1,239 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0 text-gray-800">Provider Financial Profile</h1>
+            <p class="text-muted mb-0">NPI: {{ provider.npi }}</p>
+        </div>
+        <a href="/providers" class="btn btn-outline-primary">
+            <i class="fas fa-arrow-left"></i> Back to Search
+        </a>
+    </div>
+
+    <!-- Provider Overview Cards -->
+    <div class="row mb-4">
+        <!-- Profile Card -->
+        <div class="col-xl-4 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Provider Details</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ provider.provider_name }}</div>
+                            <div class="text-muted small">{{ provider.provider_city }}, {{ provider.provider_state }}
+                            </div>
+                            <div class="mt-2">
+                                <span class="badge badge-secondary">{{ provider.provider_type }}</span>
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-user-md fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Financial Summary -->
+        <div class="col-xl-4 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Total Medicare Payments (Historical)</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">${{
+                                "{:,.2f}".format(provider.total_payment_all or 0) }}</div>
+                            <div class="text-xs text-muted mt-1">
+                                Est. Monthly: ${{ "{:,.2f}".format(provider.monthly_payment_estimate or 0) }}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-dollar-sign fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Risk Status -->
+        <div class="col-xl-4 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Risk Indicators</div>
+                            <div class="row">
+                                <div class="col-6">
+                                    <div class="small font-weight-bold">High Cost?</div>
+                                    {% if provider.is_high_cost_provider %}
+                                    <span class="badge badge-danger">YES</span>
+                                    {% else %}
+                                    <span class="badge badge-success">NO</span>
+                                    {% endif %}
+                                </div>
+                                <div class="col-6">
+                                    <div class="small font-weight-bold">Opioid Prescriber?</div>
+                                    {% if provider.is_opioid_prescriber %}
+                                    <span class="badge badge-warning">YES</span>
+                                    <div class="text-xs text-muted">{{ "{:.1%}".format(provider.opioid_prescriber_rate
+                                        or 0)
+                                        }} Rate</div>
+                                    {% else %}
+                                    <span class="badge badge-success">NO</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-exclamation-triangle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Transaction History -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <h6 class="m-0 font-weight-bold text-primary">Recent Transactions</h6>
+            <span class="badge badge-info">{{ transactions|length }} Records Found</span>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>Transaction ID</th>
+                            <th>Date</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                            <th>Fraud Score</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for txn in transactions %}
+                        <tr>
+                            <td>
+                                <span class="font-weight-bold text-primary">{{ txn.transaction_id }}</span>
+                                <div class="small text-muted">Claim: {{ txn.claim_id }}</div>
+                            </td>
+                            <td>
+                                {% if txn.payment_processed_date %}
+                                {{ txn.payment_processed_date }}
+                                {% else %}
+                                {{ txn.payment_date }}
+                                {% endif %}
+                            </td>
+                            <td>${{ "{:,.2f}".format(txn.payment_amount or 0) }}</td>
+                            <td>
+                                {% if txn.payment_status == 'PENDING' %}
+                                <span class="badge badge-warning">PENDING</span>
+                                {% elif txn.payment_status == 'PROCESSED' %}
+                                <span class="badge badge-success">PROCESSED</span>
+                                {% elif txn.payment_status == 'HELD' %}
+                                <span class="badge badge-danger">HELD</span>
+                                {% else %}
+                                <span class="badge badge-secondary">{{ txn.payment_status }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if txn.fraud_risk_score > 0.75 %}
+                                <span class="text-danger font-weight-bold">{{ "{:.1%}".format(txn.fraud_risk_score or 0)
+                                    }}</span>
+                                {% elif txn.fraud_risk_score > 0.5 %}
+                                <span class="text-warning font-weight-bold">{{ "{:.1%}".format(txn.fraud_risk_score or
+                                    0)
+                                    }}</span>
+                                {% else %}
+                                <span class="text-success">{{ "{:.1%}".format(txn.fraud_risk_score or 0) }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if txn.payment_status == 'PENDING' %}
+                                <button class="btn btn-sm btn-danger"
+                                    onclick="holdPayment('{{ txn.transaction_id }}', '{{ provider.npi }}')">
+                                    Hold
+                                </button>
+                                {% elif txn.payment_status == 'PROCESSED' %}
+                                <button class="btn btn-sm btn-warning"
+                                    onclick="initiateRecovery('{{ txn.transaction_id }}', '{{ provider.npi }}')">
+                                    Recover
+                                </button>
+                                {% else %}
+                                <button class="btn btn-sm btn-secondary" disabled>View</button>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    async function holdPayment(txnId, npi) {
+        if (!confirm('Are you sure you want to HOLD this payment?')) return;
+
+        try {
+            const response = await fetch('/api/process_payment_hold', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    npi: parseInt(npi),
+                    transaction_id: txnId,
+                    action: 'HOLD',
+                    reasoning: 'Manual hold from Provider Details page'
+                })
+            });
+
+            if (response.ok) {
+                alert('Payment Held Successfully');
+                location.reload();
+            } else {
+                alert('Failed to hold payment');
+            }
+        } catch (e) {
+            console.error(e);
+            alert('Error processing request');
+        }
+    }
+
+    async function initiateRecovery(txnId, npi) {
+        if (!confirm('Initiate recovery for this processed payment?')) return;
+
+        try {
+            const response = await fetch('/api/initiate_recovery', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    transaction_id: txnId,
+                    npi: parseInt(npi),
+                    fraud_score: 0.9, // Defaulting for manual action
+                    initiator: 'manual_user',
+                    initiated_by: '{{ user.username if user else "admin" }}'
+                })
+            });
+
+            if (response.ok) {
+                alert('Recovery Initiated Successfully');
+                location.reload();
+            } else {
+                alert('Failed to initiate recovery');
+            }
+        } catch (e) {
+            console.error(e);
+            alert('Error processing request');
+        }
+    }
+</script>
+{% endblock %}

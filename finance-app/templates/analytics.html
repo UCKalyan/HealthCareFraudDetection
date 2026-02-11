@@ -1,0 +1,223 @@
+{% extends "base.html" %}
+
+{% block title %}Analytics - Finance Application{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <h1 class="text-3xl font-bold text-gray-800">Analytics & Insights</h1>
+
+    <!-- Charts Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Risk Distribution -->
+        <div class="glass rounded-xl p-6 shadow-lg">
+            <h3 class="text-lg font-bold mb-4">Risk Distribution</h3>
+            <div class="relative" style="height: 300px;">
+                <canvas id="riskChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Payment by State -->
+        <div class="glass rounded-xl p-6 shadow-lg">
+            <h3 class="text-lg font-bold mb-4">Top States by Payment Volume</h3>
+            <div class="relative" style="height: 300px;">
+                <canvas id="stateChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- High-Risk Providers Table -->
+    <div class="glass rounded-xl p-6 shadow-lg">
+        <h3 class="text-lg font-bold mb-4">Top 100 High-Risk Providers</h3>
+        <div class="overflow-x-auto">
+            <table class="min-w-full">
+                <thead>
+                    <tr class="border-b">
+                        <th class="text-left py-2 px-4">Rank</th>
+                        <th class="text-left py-2 px-4">NPI</th>
+                        <th class="text-left py-2 px-4">Provider</th>
+                        <th class="text-right py-2 px-4">Total Payments</th>
+                        <th class="text-center py-2 px-4">Opioid Prescriber</th>
+                    </tr>
+                </thead>
+                <tbody id="highRiskTable"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    async function loadAnalytics() {
+        const response = await fetch('/api/analytics/high-risk?limit=100');
+        const data = await response.json();
+
+        const tbody = document.getElementById('highRiskTable');
+        tbody.innerHTML = data.providers.map((p, i) => `
+        <tr class="border-b hover:bg-gray-50">
+            <td class="py-2 px-4 font-bold text-gray-700">#${i + 1}</td>
+            <td class="py-2 px-4 text-sm font-mono">${p.npi}</td>
+            <td class="py-2 px-4 text-sm">${p.provider_name || 'Unknown'}</td>
+            <td class="py-2 px-4 text-right font-semibold">$${((p.total_payment_all || 0) / 1e6).toFixed(2)}M</td>
+            <td class="py-2 px-4 text-center">
+                ${p.is_opioid_prescriber ?
+                '<span class="px-2 py-1 bg-red-100 text-red-700 rounded text-xs">Yes</span>' :
+                '<span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">No</span>'
+            }
+            </td>
+        </tr>
+    `).join('');
+
+        createRiskChart(data.providers);
+        createStateChart(data.providers);
+    }
+
+    function createRiskChart(providers) {
+        const ctx = document.getElementById('riskChart').getContext('2d');
+
+        // Calculate counts
+        const highCost = providers.filter(p => p.is_high_cost_provider).length;
+        const opioid = providers.filter(p => p.is_opioid_prescriber).length;
+        const both = providers.filter(p => p.is_high_cost_provider && p.is_opioid_prescriber).length;
+
+        // Calculate exclusive counts
+        const highCostOnly = highCost - both;
+        const opioidOnly = opioid - both;
+
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['High-Cost Only', 'Opioid Only', 'Both Flags'],
+                datasets: [{
+                    label: 'Number of Providers',
+                    data: [highCostOnly, opioidOnly, both],
+                    backgroundColor: [
+                        'rgba(239, 68, 68, 0.8)',   // Red - High-cost only
+                        'rgba(234, 179, 8, 0.8)',   // Yellow - Opioid only
+                        'rgba(147, 51, 234, 0.8)'   // Purple - Both
+                    ],
+                    borderColor: [
+                        'rgba(239, 68, 68, 1)',
+                        'rgba(234, 179, 8, 1)',
+                        'rgba(147, 51, 234, 1)'
+                    ],
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    title: {
+                        display: true,
+                        text: `Risk Categories (from top ${providers.length} providers)`,
+                        font: {
+                            size: 12
+                        },
+                        color: '#666'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function (context) {
+                                return context.parsed.y + ' providers';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            precision: 0,
+                            callback: function (value) {
+                                return value;
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: 'Provider Count',
+                            font: {
+                                size: 11
+                            }
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Risk Category',
+                            font: {
+                                size: 11
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    function createStateChart(providers) {
+        const ctx = document.getElementById('stateChart').getContext('2d');
+
+        // Group providers by state and sum payments
+        const statePayments = {};
+        providers.forEach(p => {
+            const state = p.provider_state || 'Unknown';
+            if (!statePayments[state]) {
+                statePayments[state] = 0;
+            }
+            statePayments[state] += (p.total_payment_all || 0);
+        });
+
+        // Sort by payment amount and get top 10
+        const sortedStates = Object.entries(statePayments)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 10);
+
+        const labels = sortedStates.map(s => s[0]);
+        const data = sortedStates.map(s => s[1] / 1e6); // Convert to millions
+
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Payment Volume ($M)',
+                    data: data,
+                    backgroundColor: 'rgba(147, 51, 234, 0.8)',
+                    borderColor: 'rgba(147, 51, 234, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                indexAxis: 'y',
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function (context) {
+                                return '$' + context.parsed.x.toFixed(1) + 'M';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function (value) {
+                                return '$' + value.toFixed(1) + 'M';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+    loadAnalytics();
+</script>
+{% endblock %}

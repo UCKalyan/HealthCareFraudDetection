@@ -1,0 +1,198 @@
+{% extends "base.html" %}
+
+{% block title %}Payment Processing - Finance Application{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <h1 class="text-3xl font-bold text-gray-800">Payment Processing Center</h1>
+
+    <!-- Filters -->
+    <div class="glass rounded-xl p-4 shadow-lg flex gap-4">
+        <input type="text" id="searchNPI" placeholder="Search by NPI..." class="flex-1 px-4 py-2 border rounded-lg"
+            onkeypress="if(event.key==='Enter') loadPayments(1)">
+        <select id="filterStatus" class="px-4 py-2 border rounded-lg" onchange="loadPayments(1)">
+            <option value="">All Statuses</option>
+            <option value="PROCESSED">Processed</option>
+            <option value="PENDING">Pending</option>
+            <option value="HELD">Held</option>
+        </select>
+        <button onclick="loadPayments(1)" id="searchBtn"
+            class="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">Search</button>
+    </div>
+
+    <!-- Payments Table -->
+    <div class="glass rounded-xl p-6 shadow-lg">
+        <div class="overflow-x-auto">
+            <table class="min-w-full">
+                <thead>
+                    <tr class="border-b-2 border-gray-200">
+                        <th class="text-left py-3 px-4 font-semibold">Transaction</th>
+                        <th class="text-left py-3 px-4 font-semibold">Provider</th>
+                        <th class="text-right py-3 px-4 font-semibold">Amount</th>
+                        <th class="text-center py-3 px-4 font-semibold">Fraud Score</th>
+                        <th class="text-center py-3 px-4 font-semibold">Decision</th>
+                        <th class="text-center py-3 px-4 font-semibold">Confidence</th>
+                        <th class="text-left py-3 px-4 font-semibold">Reasoning</th>
+                    </tr>
+                </thead>
+                <tbody id="paymentsTable"></tbody>
+            </table>
+        </div>
+
+        <!-- Pagination Controls -->
+        <div class="flex justify-between items-center mt-6 pt-4 border-t border-gray-100">
+            <span id="pageInfo" class="text-sm text-gray-600">Showing 0-0 of 0</span>
+            <div class="flex gap-2">
+                <button id="prevBtn" onclick="changePage(-1)"
+                    class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium text-gray-700">
+                    Previous
+                </button>
+                <button id="nextBtn" onclick="changePage(1)"
+                    class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium text-gray-700">
+                    Next
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentPage = 1;
+    const itemsPerPage = 50;
+    let totalPages = 1;
+
+    async function loadPayments(page = 1) {
+        currentPage = page;
+        const searchNPI = document.getElementById('searchNPI').value.trim();
+        const filterStatus = document.getElementById('filterStatus').value;
+        const tbody = document.getElementById('paymentsTable');
+        const searchBtn = document.getElementById('searchBtn');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+
+        // Set loading state
+        const originalBtnText = searchBtn.innerHTML;
+        searchBtn.innerHTML = 'Searching...';
+        searchBtn.disabled = true;
+        if (prevBtn) prevBtn.disabled = true;
+        if (nextBtn) nextBtn.disabled = true;
+
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="7" class="py-12 text-center">
+                    <div class="flex flex-col items-center gap-3">
+                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+                        <p class="text-gray-500 font-medium">Loading payments...</p>
+                    </div>
+                </td>
+            </tr>
+        `;
+
+        // Build query parameters
+        const params = new URLSearchParams();
+        if (searchNPI) params.append('npi', searchNPI);
+        if (filterStatus) params.append('status', filterStatus);
+        params.append('page', currentPage);
+        params.append('limit', itemsPerPage);
+
+        // Use search endpoint if filters applied, otherwise use recent
+        const endpoint = (searchNPI || filterStatus)
+            ? `/api/payments/search?${params.toString()}`
+            : `/api/payments/recent?${params.toString()}`;
+
+        try {
+            const response = await fetch(endpoint);
+            const data = await response.json();
+
+            displayPayments(data.payments);
+            updatePaginationControls(data.total, data.page, data.limit, data.total_pages);
+        } catch (error) {
+            console.error('Error loading payments:', error);
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7" class="py-8 text-center text-red-500">
+                        Error loading payments. Please try again.
+                    </td>
+                </tr>
+            `;
+        } finally {
+            // Restore button state
+            searchBtn.innerHTML = originalBtnText;
+            searchBtn.disabled = false;
+        }
+    }
+
+    function changePage(delta) {
+        const newPage = currentPage + delta;
+        if (newPage >= 1 && newPage <= totalPages) {
+            loadPayments(newPage);
+        }
+    }
+
+    function updatePaginationControls(total, page, limit, pages) {
+        totalPages = pages;
+        const start = total === 0 ? 0 : (page - 1) * limit + 1;
+        const end = Math.min(page * limit, total);
+
+        document.getElementById('pageInfo').textContent = `Showing ${start}-${end} of ${total}`;
+
+        document.getElementById('prevBtn').disabled = page <= 1;
+        document.getElementById('nextBtn').disabled = page >= totalPages;
+    }
+
+    function displayPayments(payments) {
+        const tbody = document.getElementById('paymentsTable');
+
+        if (!payments || payments.length === 0) {
+            tbody.innerHTML = `
+            <tr>
+                <td colspan="7" class="py-8 text-center text-gray-500">
+                    No payments found matching your filters
+                </td>
+            </tr>
+        `;
+            return;
+        }
+
+        tbody.innerHTML = payments.map(p => `
+        <tr class="border-b hover:bg-gray-50 transition-colors">
+            <td class="py-3 px-4 text-sm font-mono text-gray-600">${p.transaction_id?.substring(0, 12) || 'N/A'}...</td>
+            <td class="py-3 px-4">
+                <div class="text-sm font-semibold text-gray-900">${p.npi}</div>
+                <div class="text-xs text-gray-500">${p.provider_state || 'N/A'}</div>
+            </td>
+            <td class="py-3 px-4 text-right font-semibold text-gray-900">$${(p.payment_amount || 0).toLocaleString()}</td>
+            <td class="py-3 px-4 text-center">
+                <span class="text-sm ${(p.fraud_risk_score || 0) > 0.7 ? 'text-red-600 bg-red-50 px-2 py-1 rounded' : 'text-green-600 bg-green-50 px-2 py-1 rounded'} font-bold">
+                    ${((p.fraud_risk_score || 0) * 100).toFixed(1)}%
+                </span>
+            </td>
+            <td class="py-3 px-4 text-center">
+                <span class="px-3 py-1 rounded-full text-xs font-bold shadow-sm border ${(p.agent_decision || p.payment_status) === 'APPROVE' || (p.agent_decision || p.payment_status) === 'PROCESSED' ? 'bg-green-100 text-green-700 border-green-200' :
+                (p.agent_decision || p.payment_status) === 'HOLD' || (p.agent_decision || p.payment_status) === 'PENDING' ? 'bg-yellow-100 text-yellow-700 border-yellow-200' :
+                    'bg-red-100 text-red-700 border-red-200'
+            }">
+                    ${p.agent_decision || p.payment_status || 'PENDING'}
+                </span>
+            </td>
+            <td class="py-3 px-4 text-center font-bold text-sm ${(p.agent_confidence || 0) >= 0.8 ? 'text-green-600' : 'text-yellow-600'
+            }">
+                ${((p.agent_confidence || 0) * 100).toFixed(0)}%
+            </td>
+            <td class="py-3 px-4 text-xs text-gray-500 max-w-xs truncate" title="${p.agent_reasoning || ''}">
+                ${p.agent_reasoning || 'N/A'}
+            </td>
+        </tr>
+    `).join('');
+    }
+
+    // Add event listeners for filtering
+    document.addEventListener('DOMContentLoaded', () => {
+        // Initial load
+        loadPayments(1);
+
+        // Auto-refresh every 30 seconds (less frequent for pagination)
+        setInterval(() => loadPayments(currentPage), 30000);
+    });
+</script>
+{% endblock %}
