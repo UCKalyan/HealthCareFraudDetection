@@ -9,14 +9,14 @@
 cd /Users/kalyan/Documents/HealthCareFraudDetection-master/fraud-detection-app
 uvicorn api_server:app --host 0.0.0.0 --port 8000
 ```
-→ Access at: http://localhost:8000 (login: admin / fraud2025)
+→ Access at: http://localhost:8000 (login: admin / admin2025)
 
 **Terminal 2 - Finance:**
 ```bash
 cd /Users/kalyan/Documents/HealthCareFraudDetection-master/finance-app  
 python api_server.py
 ```
-→ Access at: http://localhost:8001 (login: admin / finance2024)
+→ Access at: http://localhost:8001 (login: admin / admin2025)
 
 ### **Option 2: Start with MCP Servers (Full Integration)**
 
@@ -43,7 +43,10 @@ cd /Users/kalyan/Documents/HealthCareFraudDetection-master/fraud-detection-app
 cd /Users/kalyan/Documents/HealthCareFraudDetection-master/finance-app
 python mcp_server.py
 ```
-
+**Terminal 5 - Ollama:**
+```bash
+ollama serve
+```
 ---
 
 ## 📂 **New Project Structure**

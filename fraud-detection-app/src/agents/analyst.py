@@ -19,24 +19,50 @@ class AnalystAgent(BaseAgent):
             provider_data = provider_data.to_frame().T
             
         provider_data_aligned = provider_data.reindex(columns=self.feature_cols, fill_value=0)
+        # Fill any NaN/None values with 0 (e.g. NULL provider_archetype columns in DB)
+        provider_data_aligned = provider_data_aligned.fillna(0)
         feature_vector = self.scaler.transform(provider_data_aligned)
         
         # Predict
-        final_score = self.model.predict(feature_vector)[0][0]
+        final_score = self.model.predict(feature_vector, verbose=0)[0][0]
         
-        # Explain
-        shap_values = self.explainer.shap_values(feature_vector)
+        n_features = len(self.feature_cols)
         
-        # Handle different SHAP return types (list of arrays vs single array)
-        if isinstance(shap_values, list):
-            # For binary classification, it often returns [neg_class_shap, pos_class_shap]
-            # We want the positive class (index 1) if 2 classes, or index 0 if 1 output
-            if len(shap_values) == 2:
-                 shap_values_flat = shap_values[1].flatten()
+        # Explain — wrapped in try/except for robustness
+        try:
+            shap_values = self.explainer.shap_values(feature_vector)
+            
+            # Handle different SHAP return types
+            if isinstance(shap_values, list):
+                # Binary classification: [neg_class_shap, pos_class_shap]
+                if len(shap_values) == 2:
+                    sv = np.array(shap_values[1]).flatten()
+                else:
+                    sv = np.array(shap_values[0]).flatten()
             else:
-                 shap_values_flat = shap_values[0].flatten()
-        else:
-            shap_values_flat = np.array(shap_values).flatten()
+                sv = np.array(shap_values).flatten()
+            
+            # CRITICAL: Ensure shap_values_flat has exactly n_features elements
+            if len(sv) >= n_features:
+                shap_values_flat = sv[:n_features]
+            else:
+                # Pad with zeros if too short
+                shap_values_flat = np.zeros(n_features)
+                shap_values_flat[:len(sv)] = sv
+                
+            # Handle expected_value (can be scalar or array for binary classifiers)
+            ev = self.explainer.expected_value
+            if isinstance(ev, (list, np.ndarray)):
+                base_value = float(np.array(ev).flat[-1])
+            else:
+                base_value = float(ev)
+                
+        except Exception as shap_err:
+            # If SHAP fails, still return a valid result with zero attributions
+            import logging
+            logging.getLogger(__name__).warning(f"SHAP explanation failed: {shap_err}. Using zero attributions.")
+            shap_values_flat = np.zeros(n_features)
+            base_value = float(final_score)
             
         # Synthesize Feature Analysis for LLM
         feature_analysis_str = ""
@@ -62,7 +88,7 @@ class AnalystAgent(BaseAgent):
             feature_analysis_str += f"- **Feature:** '{display_name}' | **Provider's Value:** {provider_value:.2f} | **Impact on Fraud Score (SHAP):** {shap_value:+.4f}\n"
 
         risk_level = "High" if final_score > 0.75 else ("Medium" if final_score > 0.30 else "Low")
-        top_factor_idx = np.argmax(np.abs(shap_values))
+        top_factor_idx = int(np.argmax(np.abs(shap_values_flat)))
         raw_top_factor = self.feature_cols[top_factor_idx]
         top_factor = name_map.get(raw_top_factor, raw_top_factor)
 
@@ -112,9 +138,10 @@ class AnalystAgent(BaseAgent):
             "agent": "Analyst",
             "risk_level": risk_level,
             "final_score": float(final_score),
-            "base_value": float(self.explainer.expected_value),
+            "base_value": base_value,
             "top_factor": top_factor,
             "shap_data": shap_data,
             "analysis_text": analysis_text,
             "features": features_dict
         }
+

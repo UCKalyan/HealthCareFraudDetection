@@ -23,7 +23,7 @@ router = APIRouter()
 # In-memory cache for analysis results
 analysis_cache = {}
 
-async def _run_agentic_analysis(provider_id: str, provider_data: pd.Series, ml_assets: dict):
+async def _run_agentic_analysis(provider_id: str, provider_data: pd.Series, ml_assets: dict, skip_reporter: bool = False):
     """
     Orchestrates the multi-agent analysis flow.
     """
@@ -52,10 +52,22 @@ async def _run_agentic_analysis(provider_id: str, provider_data: pd.Series, ml_a
         logger.info(f"Supervisor Recommendation: {supervisor_recommendation}")
         logger.info(f"************************* Supervisor Recommendation Completed *************************")
 
-        # 4. Reporter Agent
-        reporter = ReporterAgent(ml_assets['config'])
-        final_report = reporter.run(investigation_report, analysis_results, supervisor_recommendation, provider_id)
-        logger.info("Reporter generated final report.")
+        # 4. Reporter Agent (skipped for background/monitor auto-analysis to avoid LLM costs)
+        if skip_reporter:
+            final_score_pct = f"{analysis_results.get('final_score', 0):.2%}"
+            final_report = {
+                "final_narrative": (
+                    f"Auto-analysis by Monitor Agent. "
+                    f"Risk level: {analysis_results['risk_level']} "
+                    f"(score: {final_score_pct}). "
+                    f"Supervisor: {supervisor_recommendation['recommendation']}."
+                )
+            }
+            logger.info("Reporter skipped (monitor background analysis).")
+        else:
+            reporter = ReporterAgent(ml_assets['config'])
+            final_report = reporter.run(investigation_report, analysis_results, supervisor_recommendation, provider_id)
+            logger.info("Reporter generated final report.")
 
         # Construct trace
         trace = [
@@ -194,8 +206,24 @@ async def _run_agentic_analysis(provider_id: str, provider_data: pd.Series, ml_a
 async def analyze_provider(request: Request, ml_assets: dict = Depends(get_ml_assets)):
     """
     Analyzes an existing provider from the dataset by NPI.
+    Called by the UI — runs the full pipeline including the ReporterAgent (LLM narrative).
     Accepts both JSON and Form data to be robust against client variations.
     """
+    return await _analyze_provider_impl(request, ml_assets, skip_reporter=False)
+
+
+@router.post("/analyze_provider_bg")
+async def analyze_provider_bg(request: Request, ml_assets: dict = Depends(get_ml_assets)):
+    """
+    Background variant called exclusively by the MonitorAgent.
+    Identical to /analyze_provider but skips the ReporterAgent (no LLM call),
+    which eliminates Gemini/Ollama rate-limit errors during automated sweeps.
+    """
+    return await _analyze_provider_impl(request, ml_assets, skip_reporter=True)
+
+
+async def _analyze_provider_impl(request: Request, ml_assets: dict, skip_reporter: bool):
+    """Shared implementation for /analyze_provider and /analyze_provider_bg."""
     npi = None
     try:
         # Try parsing as JSON
@@ -208,42 +236,43 @@ async def analyze_provider(request: Request, ml_assets: dict = Depends(get_ml_as
             npi = form.get("npi")
         except Exception:
             pass
-            
+
     if not npi:
         raise HTTPException(status_code=422, detail="Missing NPI in request body")
-        
+
     try:
         npi = int(npi)
     except ValueError:
         raise HTTPException(status_code=422, detail="NPI must be a valid integer")
 
-    logger.info(f"Received analysis request for NPI: {npi}")
-    
+    logger.info(f"Received analysis request for NPI: {npi} (skip_reporter={skip_reporter})")
+
     from src.database import get_db_connection
-    
+
     try:
         # Check cache first to improve performance
         if str(npi) in analysis_cache:
             logger.info(f"Returning cached analysis for NPI: {npi}")
             return analysis_cache[str(npi)]
-        
+
         with get_db_connection() as conn:
-            # Fetch provider data
-            provider_df = pd.read_sql_query("SELECT * FROM providers WHERE provider_id = ?", conn, params=(npi,))
-            
+            provider_df = pd.read_sql_query(
+                "SELECT * FROM providers WHERE provider_id = ?", conn, params=(npi,)
+            )
+
         if provider_df.empty:
             raise HTTPException(status_code=404, detail="Provider NPI not found in dataset.")
-        
-        # Convert single row DataFrame to Series for compatibility with agents
+
         provider_data = provider_df.iloc[0]
-        
+
         # Run the agentic workflow
-        report = await _run_agentic_analysis(str(npi), provider_data, ml_assets)
-        
+        report = await _run_agentic_analysis(str(npi), provider_data, ml_assets, skip_reporter=skip_reporter)
+
         return report
-        
+
     except Exception as e:
-        if isinstance(e, HTTPException): raise e
+        if isinstance(e, HTTPException):
+            raise e
         logger.error(f"Error in analyze_provider: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -312,7 +341,7 @@ import json
 import asyncio
 from fastapi.responses import StreamingResponse
 
-async def stream_agentic_analysis(provider_id: str, provider_data: pd.Series, ml_assets: dict):
+async def stream_agentic_analysis(provider_id: str, provider_data: pd.Series, ml_assets: dict, skip_reporter: bool = False):
     """
     Generator that yields progress events and the final result.
     """
@@ -348,12 +377,24 @@ async def stream_agentic_analysis(provider_id: str, provider_data: pd.Series, ml
         logger.info(f"************************* Supervisor Recommendation Completed *************************")
         yield json.dumps({"type": "progress", "agent": "supervisor", "status": "done"}) + "\n"
 
-        # 4. Reporter Agent
-        yield json.dumps({"type": "progress", "agent": "reporter", "status": "working"}) + "\n"
-        reporter = ReporterAgent(ml_assets['config'])
-        final_report = reporter.run(investigation_report, analysis_results, supervisor_recommendation, provider_id)
-        logger.info("Reporter generated final report.")
-        yield json.dumps({"type": "progress", "agent": "reporter", "status": "done"}) + "\n"
+        # 4. Reporter Agent (skipped for background/monitor auto-analysis)
+        if skip_reporter:
+            final_score_pct = f"{analysis_results.get('final_score', 0):.2%}"
+            final_report = {
+                "final_narrative": (
+                    f"Auto-analysis by Monitor Agent. "
+                    f"Risk level: {analysis_results['risk_level']} "
+                    f"(score: {final_score_pct}). "
+                    f"Supervisor: {supervisor_recommendation['recommendation']}."
+                )
+            }
+            logger.info("Reporter skipped (monitor background analysis).")
+        else:
+            yield json.dumps({"type": "progress", "agent": "reporter", "status": "working"}) + "\n"
+            reporter = ReporterAgent(ml_assets['config'])
+            final_report = reporter.run(investigation_report, analysis_results, supervisor_recommendation, provider_id)
+            logger.info("Reporter generated final report.")
+            yield json.dumps({"type": "progress", "agent": "reporter", "status": "done"}) + "\n"
 
         # Construct trace
         trace = [
@@ -488,7 +529,7 @@ async def stream_agentic_analysis(provider_id: str, provider_data: pd.Series, ml
         yield json.dumps({"type": "error", "detail": str(e)}) + "\n"
 
 @router.post("/analyze_provider_stream")
-async def analyze_provider_stream(request: Request, ml_assets: dict = Depends(get_ml_assets)):
+async def analyze_provider_stream(request: Request, ml_assets: dict = Depends(get_ml_assets), skip_reporter: bool = False):
     """
     Streams analysis progress and results.
     """
@@ -524,7 +565,7 @@ async def analyze_provider_stream(request: Request, ml_assets: dict = Depends(ge
     
     provider_data = provider_df.iloc[0]
     
-    return StreamingResponse(stream_agentic_analysis(str(npi), provider_data, ml_assets), media_type="application/x-ndjson")
+    return StreamingResponse(stream_agentic_analysis(str(npi), provider_data, ml_assets, skip_reporter=skip_reporter), media_type="application/x-ndjson")
 
 from fastapi.responses import FileResponse
 import os

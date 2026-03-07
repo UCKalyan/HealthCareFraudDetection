@@ -55,8 +55,20 @@ logs/**
 *.env.*
 shared-data/raw/**
 shared-data/processed/**
+docs/**
 # Large files
 *.db
 *.dmg
 *.zip
 *.sh
+*.md
+*.MD
+*.markdown
+*.MARKDOWN
+
+*.pdf
+*.ipynb
+*.txt
+
+
+

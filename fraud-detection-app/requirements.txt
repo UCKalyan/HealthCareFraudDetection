@@ -21,3 +21,4 @@ langgraph>=0.0.10
 langchain>=0.1.0
 python-dotenv>=1.0.0
 sentence-transformers>=2.2.2reportlab==4.4.5
+schedule

@@ -118,6 +118,26 @@ SESSION_COOKIE_NAME = "hcfd_session"
 
 
 # ==============================================================================
+# Database Connection Helper
+# ==============================================================================
+
+def get_db_connection(path=None, row_factory=False):
+    """
+    Open a SQLite connection with:
+    - WAL journal mode  → readers never block writers; concurrent access is safe
+    - 30-second busy timeout → waitlisted connections queue instead of failing
+                               immediately with 'database is locked'
+    """
+    db = path or DB_PATH
+    conn = sqlite3.connect(str(db), timeout=30, check_same_thread=False)
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA synchronous=NORMAL")   # safe + faster than FULL
+    if row_factory:
+        conn.row_factory = sqlite3.Row
+    return conn
+
+
+# ==============================================================================
 # Authentication & Session Management
 # ==============================================================================
 
@@ -128,8 +148,7 @@ def get_session_user(request: Request):
         return None
         
     try:
-        conn = sqlite3.connect(AUTH_DB_PATH)
-        conn.row_factory = sqlite3.Row
+        conn = get_db_connection(path=AUTH_DB_PATH, row_factory=True)
         cursor = conn.cursor()
         
         # Check session validity
@@ -161,8 +180,7 @@ async def login_page(request: Request, error: str = None):
 async def login(username: str = Form(...), password: str = Form(...)):
     """Handle login form submission against shared Auth DB"""
     try:
-        conn = sqlite3.connect(AUTH_DB_PATH)
-        conn.row_factory = sqlite3.Row
+        conn = get_db_connection(path=AUTH_DB_PATH, row_factory=True)
         cursor = conn.cursor()
         
         # Verify user
@@ -195,7 +213,7 @@ async def logout(request: Request):
     session_id = request.cookies.get(SESSION_COOKIE_NAME)
     if session_id:
         try:
-            conn = sqlite3.connect(AUTH_DB_PATH)
+            conn = get_db_connection(path=AUTH_DB_PATH)
             cursor = conn.cursor()
             cursor.execute("DELETE FROM sessions WHERE session_id = ?", (session_id,))
             conn.commit()
@@ -309,7 +327,7 @@ def refresh_dashboard_stats():
     """Calculate stats and update the summary table"""
     start_time = time.time()
     try:
-        conn = sqlite3.connect(DB_PATH)
+        conn = get_db_connection()
         cursor = conn.cursor()
         
         # Total providers
@@ -380,8 +398,7 @@ def get_dashboard_stats():
     start_time = time.time()
     
     try:
-        conn = sqlite3.connect(DB_PATH)
-        conn.row_factory = sqlite3.Row
+        conn = get_db_connection(row_factory=True)
         cursor = conn.cursor()
         
         cursor.execute("SELECT * FROM dashboard_statistics WHERE id = 1")
@@ -421,8 +438,7 @@ def get_recent_payments(page: int = 1, limit: int = 50):
     logger.info(f"💳 Fetching recent payments (Page {page}, Limit {limit})...")
     
     try:
-        conn = sqlite3.connect(DB_PATH)
-        conn.row_factory = sqlite3.Row
+        conn = get_db_connection(row_factory=True)
         cursor = conn.cursor()
         
         # Get Total Count
@@ -470,8 +486,7 @@ def search_payments(
     offset = (page - 1) * limit
     
     try:
-        conn = sqlite3.connect(DB_PATH)
-        conn.row_factory = sqlite3.Row
+        conn = get_db_connection(row_factory=True)
         cursor = conn.cursor()
         
         # Base Query Construction
@@ -531,8 +546,7 @@ def search_providers(query: str = "", limit: int = 100):
     """Search providers by NPI, name, or state"""
     
     try:
-        conn = sqlite3.connect(DB_PATH)
-        conn.row_factory = sqlite3.Row
+        conn = get_db_connection(row_factory=True)
         
         cursor = conn.cursor()
         cursor.execute('''
@@ -567,8 +581,7 @@ def provider_details_page(request: Request, npi: int):
         return RedirectResponse(url="/login")
         
     try:
-        conn = sqlite3.connect(DB_PATH)
-        conn.row_factory = sqlite3.Row
+        conn = get_db_connection(row_factory=True)
         cursor = conn.cursor()
         
         # Get provider profile
@@ -608,8 +621,7 @@ def get_provider_details(npi: int):
     """Get complete provider financial profile"""
     
     try:
-        conn = sqlite3.connect(DB_PATH)
-        conn.row_factory = sqlite3.Row
+        conn = get_db_connection(row_factory=True)
         
         # Get provider profile
         cursor = conn.cursor()
@@ -651,8 +663,7 @@ def get_high_risk_providers(limit: int = 100):
     """Get high-risk providers"""
     
     try:
-        conn = sqlite3.connect(DB_PATH)
-        conn.row_factory = sqlite3.Row
+        conn = get_db_connection(row_factory=True)
         
         cursor = conn.cursor()
         cursor.execute('''
@@ -685,8 +696,7 @@ def get_agent_decisions(limit: int = 100):
     """Get agent decision logs"""
     
     try:
-        conn = sqlite3.connect(DB_PATH)
-        conn.row_factory = sqlite3.Row
+        conn = get_db_connection(row_factory=True)
         
         cursor = conn.cursor()
         cursor.execute('''
@@ -732,7 +742,7 @@ def process_payment_hold(data: dict):
     try:
         from src.services import PaymentClassifier
         
-        conn = sqlite3.connect(DB_PATH)
+        conn = get_db_connection()
         cursor = conn.cursor()
         
         # If transaction_id provided, check if it's already processed

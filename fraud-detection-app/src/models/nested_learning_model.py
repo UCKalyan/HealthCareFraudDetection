@@ -1,3 +1,5 @@
+import logging
+import os
 import tensorflow as tf
 from tensorflow.keras import Model
 
@@ -13,18 +15,25 @@ class NestedLearningModel(Model):
     while allowing rapid adaptation to new fraud trends (Fast Model).
     """
     
-    def __init__(self, fast_model, slow_model, alpha=0.99):
+    def __init__(self, fast_model, slow_model, alpha=0.99, log_frequency=50):
         """
         Args:
             fast_model: The main trainable model.
             slow_model: A clone of the model (non-trainable via gradient).
             alpha: The decay rate for the moving average (e.g., 0.99).
                    Higher alpha = Slower updates (More stability).
+            log_frequency: How often (in batches) to log divergence metrics.
         """
         super(NestedLearningModel, self).__init__()
         self.fast_model = fast_model
         self.slow_model = slow_model
         self.alpha = alpha
+        self.log_frequency = log_frequency
+        self.step_counter = 0
+        
+        # Setup logger
+        self.logger = self._setup_logger()
+        self.logger.info(f"HOPE Initialized | Alpha: {alpha} | Log Frequency: {log_frequency}")
         
         # Ensure slow model is not trainable via gradient descent
         self.slow_model.trainable = False
@@ -64,9 +73,26 @@ class NestedLearningModel(Model):
         
         # Update Slow Model (EMA)
         # slow_weight = alpha * slow_weight + (1 - alpha) * fast_weight
+        weight_divergences = []
         for fast_var, slow_var in zip(self.fast_model.variables, self.slow_model.variables):
+            # Calculate divergence BEFORE update
+            divergence = tf.reduce_mean(tf.abs(fast_var - slow_var))
+            weight_divergences.append(divergence)
+
             slow_var.assign(
                 self.alpha * slow_var + (1 - self.alpha) * fast_var
+            )
+
+        # Log updates periodically
+        self.step_counter += 1
+        if self.step_counter % self.log_frequency == 0:
+            avg_div = tf.reduce_mean(weight_divergences).numpy()
+            max_div = tf.reduce_max(weight_divergences).numpy()
+            
+            self.logger.info(
+                f"Step {self.step_counter:5d} | "
+                f"Avg Divergence: {avg_div:.8f} | "
+                f"Max Divergence: {max_div:.8f}"
             )
             
         # Update metrics
@@ -85,3 +111,21 @@ class NestedLearningModel(Model):
             return self.fast_model(inputs)
         else:
             return self.slow_model(inputs)
+
+    def _setup_logger(self):
+        """Create dedicated logger for HOPE updates."""
+        logger = logging.getLogger('HOPE')
+        logger.setLevel(logging.INFO)
+        
+        # Only add handler if not already added to avoid duplicates
+        if not logger.handlers:
+            os.makedirs('logs', exist_ok=True)
+            handler = logging.FileHandler('logs/hope_updates.log', mode='a')
+            formatter = logging.Formatter(
+                '[%(asctime)s] %(message)s',
+                datefmt='%Y-%m-%d %H:%M:%S'
+            )
+            handler.setFormatter(formatter)
+            logger.addHandler(handler)
+        
+        return logger

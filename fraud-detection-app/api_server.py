@@ -1,11 +1,15 @@
 import os
 # Set TF Legacy Keras flag BEFORE any other imports to ensure it applies
 os.environ["TF_USE_LEGACY_KERAS"] = "1"
+# Disable Metal GPU to prevent MPS race condition crash with concurrent predictions
+# (Monitor Agent fires many parallel model.predict() calls from threads)
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+os.environ["TF_METAL_DEVICE_PLACEMENT"] = "false"
 import secrets
 import sqlite3
 import logging
 import time
-from fastapi import FastAPI, Request, Form, HTTPException, Depends
+from fastapi import FastAPI, Request, Form, HTTPException, Depends, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
@@ -199,6 +203,7 @@ async def chat_with_ai(request: Request):
     """
     Chat endpoint for the AI Widget.
     Supports Regex, Gemini, and Ollama via ChatService.
+    Now includes database query capabilities.
     """
     try:
         data = await request.json()
@@ -208,21 +213,23 @@ async def chat_with_ai(request: Request):
             return {"response": "Please say something."}
             
         from src.services.action_service import ActionService
+        from src.services.database_query_service import DatabaseQueryService
         from src.utils.config_loader import load_config
         from src.services.chat_service import ChatService
         
         # Initialize Services
-        action_service = ActionService(
-            providers_db_path="../shared-data/databases/providers.db",
-            finance_db_path="../shared-data/databases/finance.db",
-            finance_api_url="http://localhost:8001"
-        )
+        providers_db = "../shared-data/databases/providers.db"
+        finance_db = "../shared-data/databases/finance.db"
+        finance_api = "http://localhost:8001"
+        
+        action_service = ActionService(providers_db, finance_db, finance_api)
+        query_service = DatabaseQueryService(providers_db, finance_db)
         
         # Load Config (In prod, do this once at startup)
         config = load_config("config.yaml")
-        chat_config = config.get("chat_widget", {"mode": "regex"})
+        chat_config = config.get("chat_widget", {"mode": "ollama"})
         
-        chat_service = ChatService(chat_config, action_service)
+        chat_service = ChatService(chat_config, action_service, query_service)
         
         response_text = await chat_service.process_message(message)
         return {"response": response_text}
@@ -389,3 +396,94 @@ async def submit_decision(request: Request, decision: CaseDecision):
     except Exception as e:
         logger.error(f"Error submitting decision: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+# --- Model Retraining Endpoint ---
+
+@app.post("/api/model/retrain")
+async def trigger_retraining(
+    request: Request,
+    background_tasks: BackgroundTasks,
+    force: bool = False,
+    mode: str = None
+):
+    """
+    Trigger model retraining.
+    
+    Args:
+        force: Skip threshold checks, train regardless
+        mode: Training mode - 'incremental' (new data) or 'full' (all data from scratch)
+    
+    Examples:
+        POST /api/model/retrain              # Use config default mode
+        POST /api/model/retrain?mode=full    # Force full retrain
+        POST /api/model/retrain?force=true   # Skip thresholds, use config mode
+    
+    Returns:
+        Status and training details
+    """
+    user = get_session_user(request)
+    if not user or user['role'] != 'supervisor':
+        raise HTTPException(status_code=403, detail="Only supervisors can trigger retraining")
+    
+    try:
+        from src.utils.config_loader import load_config
+        from src.training.incremental_retrain import (
+            should_retrain,
+            get_new_data_since,
+            load_training_metadata,
+            incremental_retrain
+        )
+        
+        config = load_config('config.yaml')
+        
+        if not config.get('incremental_training', {}).get('enabled', False):
+            raise HTTPException(status_code=400, detail="Incremental training disabled in config")
+        
+        # Validate mode
+        if mode and mode not in ['incremental', 'full']:
+            raise HTTPException(status_code=400, detail="mode must be 'incremental' or 'full'")
+        
+        # Determine effective mode
+        effective_mode = mode or config['incremental_training'].get('training_mode', 'incremental')
+        
+        # Check thresholds (skip for full mode or if forced)
+        if not force and effective_mode == 'incremental':
+            should_train, reason = should_retrain(config)
+            if not should_train:
+                return {
+                    "status": "skipped",
+                    "reason": reason,
+                    "mode": effective_mode
+                }
+        
+        # Get new data for incremental mode
+        new_data = None
+        if effective_mode == 'incremental':
+            metadata = load_training_metadata(config)
+            last_training = metadata.get('last_training_time')
+            if last_training:
+                new_data = get_new_data_since(last_training, config)
+        
+        # Run training in background
+        def run_training():
+            try:
+                results = incremental_retrain(config, new_data=new_data, mode=effective_mode)
+                logger.info(f"Training completed: {results}")
+            except Exception as e:
+                logger.error(f"Background training failed: {e}", exc_info=True)
+        
+        background_tasks.add_task(run_training)
+        
+        return {
+            "status": "started",
+            "mode": effective_mode,
+            "message": f"{effective_mode.capitalize()} training started in background",
+            "check_logs": "Monitor logs/scheduled_retrain.log for progress"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Retraining endpoint error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+

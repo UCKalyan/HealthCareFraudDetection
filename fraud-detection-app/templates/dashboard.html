@@ -626,7 +626,7 @@
                             </div>
                         </div>
 
-                        <!-- AI Narrative -->
+                        <!-- AI Narrative (Executive Summary) -->
                         <div class="bg-white rounded-2xl shadow-soft border border-slate-100 overflow-hidden">
                             <div
                                 class="px-6 py-4 border-b border-slate-100 bg-gradient-to-r from-blue-50 to-indigo-50 flex items-center space-x-2">
@@ -1259,7 +1259,7 @@
                 console.log('DEBUG: finance_actions data:', data.finance_actions);
                 if (data.finance_actions && data.finance_actions.has_actions) {
                     console.log('DEBUG: Calling displayFinanceStatus with', data.finance_actions.total_actions, 'actions');
-                    displayFinanceStatus(data.finance_actions);
+                    //displayFinanceStatus(data.finance_actions);
                 } else {
                     console.log('DEBUG: No finance actions to display. has_actions:', data.finance_actions?.has_actions);
                 }
@@ -1285,6 +1285,14 @@
                 // Remove leading/trailing quotes and whitespace
                 cleanedNarrative = cleanedNarrative.replace(/^['"\\s]+|['"\\s]+$/g, '');
 
+                // **NEW**: Sanitize and fix unclosed tags to prevent layout breaks
+                // Create a temporary container to parse and validate HTML
+                const tempDiv = document.createElement("div");
+                tempDiv.innerHTML = cleanedNarrative;
+
+                // Extract sanitized HTML (browser automatically closes unclosed tags)
+                cleanedNarrative = tempDiv.innerHTML;
+
                 // Add alternating backgrounds to sections (h3 + content)
                 cleanedNarrative = cleanedNarrative.replace(/<h3>/gi, '<h3 class="text-base font-bold text-slate-800 mb-3 mt-4">');
 
@@ -1302,8 +1310,19 @@
                 document.getElementById('reportAINarrative').innerHTML = cleanedNarrative;
 
                 // Populate Agent Findings
-                document.getElementById('investigatorFindingText').innerHTML = data.investigatorFinding || "No finding available.";
-                document.getElementById('analystFindingText').innerHTML = data.analystFinding || "No finding available.";
+                // Sanitize investigator findings
+                let investigatorHTML = data.investigatorFinding || "No finding available.";
+                const investTempDiv = document.createElement("div");
+                investTempDiv.innerHTML = investigatorHTML;
+                investigatorHTML = investTempDiv.innerHTML;
+                document.getElementById("investigatorFindingText").innerHTML = investigatorHTML;
+
+                // Sanitize analyst findings
+                let analystHTML = data.analystFinding || "No finding available.";
+                const analystTempDiv = document.createElement("div");
+                analystTempDiv.innerHTML = analystHTML;
+                analystHTML = analystTempDiv.innerHTML;
+                document.getElementById("analystFindingText").innerHTML = analystHTML;
 
                 // Populate Agent Trace
                 const traceContainer = document.getElementById('agentTraceContainer');
@@ -1432,7 +1451,10 @@
                 // Supervisor Recommendation
                 const supervisorDiv = document.getElementById('supervisorRecommendation');
                 if (data.supervisorRecommendation) {
-                    let recText = data.supervisorRecommendation;
+                    // Sanitize supervisor recommendation HTML
+                    const supTempDiv = document.createElement("div");
+                    supTempDiv.innerHTML = data.supervisorRecommendation;
+                    let recText = supTempDiv.innerHTML;
                     let colorClass = "text-slate-800";
                     let bgClass = "bg-slate-100";
 
@@ -1615,8 +1637,8 @@
                         <td class="px-6 py-4"><span class="px-2.5 py-1 rounded-full text-xs font-bold border ${riskColor}">${p.risk}</span></td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
                             <div class="flex gap-2 justify-end">
-                                <button data-npi="${p.id}" class="view-btn text-brand-600 hover:text-brand-900 font-medium">View</button>
-                                <button onclick="scanProvider(${p.id})" class="text-amber-600 hover:text-amber-900 font-medium" title="Check for Emerging Threats">Scan</button>
+                                <button data-npi="${p.id}" class="view-btn text-brand-600 hover:text-brand-900 font-medium">Stable</button>
+                                <button onclick="scanProvider(${p.id})" class="text-amber-600 hover:text-amber-900 font-medium" title="Check for Emerging Threats">Fast</button>
                             </div>
                         </td>
                     `;
@@ -1676,8 +1698,8 @@
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
                                     <div class="flex gap-2 justify-end">
-                                        <button data-npi="${p.npi}" class="view-btn text-brand-600 hover:text-brand-900 font-medium">View</button>
-                                        <button onclick="scanProvider(${p.npi})" class="text-amber-600 hover:text-amber-900 font-medium" title="Check for Emerging Threats">Scan</button>
+                                        <button data-npi="${p.npi}" class="view-btn text-brand-600 hover:text-brand-900 font-medium">Stable</button>
+                                        <button onclick="scanProvider(${p.npi})" class="text-amber-600 hover:text-amber-900 font-medium" title="Check for Emerging Threats">Fast</button>
                                     </div>
                                 </td>
                             `;
@@ -1751,8 +1773,8 @@
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
                                 <div class="flex gap-2 justify-end">
-                                    <button data-npi="${p.npi}" class="view-btn text-brand-600 hover:text-brand-900 font-medium">View</button>
-                                    <button onclick="scanProvider(${p.npi})" class="text-amber-600 hover:text-amber-900 font-medium" title="Check for Emerging Threats">Scan</button>
+                                    <button data-npi="${p.npi}" class="view-btn text-brand-600 hover:text-brand-900 font-medium">Stable</button>
+                                    <button onclick="scanProvider(${p.npi})" class="text-amber-600 hover:text-amber-900 font-medium" title="Check for Emerging Threats">Fast</button>
                                 </div>
                             </td>
                             `;

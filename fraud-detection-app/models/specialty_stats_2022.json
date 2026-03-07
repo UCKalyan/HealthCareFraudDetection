@@ -1,0 +1,17 @@
+{
+  "final_feature_columns": [
+    "spb_z_tanh",
+    "cost_per_service",
+    "services_per_bene",
+    "has_part_b",
+    "has_part_d",
+    "provider_archetype_0",
+    "provider_archetype_1",
+    "provider_archetype_2",
+    "provider_archetype_3",
+    "provider_archetype_4",
+    "pagerank_centrality"
+  ],
+  "source": "2022 CMS Data",
+  "total_providers": 1522771
+}

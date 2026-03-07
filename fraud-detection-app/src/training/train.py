@@ -69,7 +69,8 @@ def train_model(model, X_train, y_train, X_val, y_val, class_weights, config):
         nested_model = NestedLearningModel(
             fast_model=model, 
             slow_model=slow_model, 
-            alpha=nested_config.get('alpha', 0.99)
+            alpha=nested_config.get('alpha', 0.99),
+            log_frequency=nested_config.get('log_frequency', 50)
         )
         
         # Compile the wrapper (needs same optimizer/loss as original)

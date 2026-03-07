@@ -1,14 +1,19 @@
-import logging
 import os
+os.environ["TF_USE_LEGACY_KERAS"] = "1"
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+import tensorflow as tf
+# Force CPU-only to prevent Metal GPU race condition with concurrent predictions
+try:
+    tf.config.set_visible_devices([], 'GPU')
+except Exception:
+    pass
+import logging
 import json
 import joblib
 import pandas as pd
-import os
-os.environ["TF_USE_LEGACY_KERAS"] = "1"
-import tensorflow as tf
+import warnings
 import keras # Direct import to bypass TF lazy loader issues
 import shap
-import warnings
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from src.utils.config_loader import load_config
@@ -142,7 +147,9 @@ async def lifespan(app: FastAPI):
             ml_assets['fraud_model'],
             ml_assets['scaler'],
             None, # feature_store is now in DB
-            final_feature_columns
+            final_feature_columns,
+            config=config,
+            ml_assets=ml_assets,  # pass full dict for direct pipeline calls (no HTTP)
         )
         logger.info("--- Initialized Monitor ---")
         ml_assets['investigation_count'] = 0
@@ -172,12 +179,24 @@ async def lifespan(app: FastAPI):
         ml_assets['search_engine'] = search_engine
         logger.info("--- Semantic Search Engine Initialized (Lazy Loading) ---")
 
+        # Start Training Scheduler (if enabled)
+        from src.training.scheduler import start_training_scheduler
+        scheduler = start_training_scheduler(config)
+        if scheduler:
+            ml_assets['training_scheduler'] = scheduler
+
     except Exception as e:
         logger.error(f"CRITICAL ERROR LOADING ASSETS: {e}")
         raise e
 
     yield
     
-    # Shutdown logic (if any)
+    # Shutdown logic
+    logger.info("--- Shutting down application ---")
+    
+    # Stop training scheduler
+    if 'training_scheduler' in ml_assets:
+        ml_assets['training_scheduler'].stop()
+    
     ml_assets.clear()
     logger.info("--- ML assets cleared ---")
